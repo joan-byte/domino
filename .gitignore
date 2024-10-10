@@ -1,0 +1,16 @@
+# Entorno de Python
+venv/
+__pycache__/
+*.pyc
+
+# Variables de entorno
+.env
+
+# Entorno de Node.js
+node_modules/
+dist/
+
+# MacOS
+.DS_Store
+
+.vscode

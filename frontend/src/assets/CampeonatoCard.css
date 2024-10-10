@@ -1,0 +1,7 @@
+.campeonato-card {
+  @apply bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300;
+}
+
+.campeonato-card-selected {
+  @apply bg-gray-100 shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 border-2 border-blue-500;
+}
