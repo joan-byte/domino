@@ -24,7 +24,7 @@
           <td class="py-2 px-4 border-b text-center">{{ mesa.pareja2_id || 'N/A' }}</td>
           <td class="py-2 px-4 border-b text-center">
             <button 
-              @click="registrarResultado(mesa)"
+              @click="irARegistroResultado(mesa)"
               :disabled="mesa.resultado_registrado"
               :class="[
                 'px-2 py-1 rounded mr-2',
@@ -55,12 +55,14 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'RegistroPartida',
   setup() {
+    const router = useRouter();
     const mesas = ref([]);
     const isLoading = ref(true);
     const error = ref(null);
@@ -75,7 +77,7 @@ export default {
         const response = await axios.get('http://localhost:8000/api/mesas-registro');
         mesas.value = response.data.map(mesa => ({
           ...mesa,
-          resultado_registrado: false // Inicializamos esta propiedad
+          resultado_registrado: false
         }));
       } catch (e) {
         console.error('Error al obtener las mesas', e);
@@ -85,17 +87,57 @@ export default {
       }
     };
 
-    const registrarResultado = (mesa) => {
-      // Aquí iría la lógica para registrar el resultado
-      console.log('Registrar resultado para mesa:', mesa.id);
-      // Después de registrar el resultado:
-      mesa.resultado_registrado = true;
+    const registrarResultado = async (mesa) => {
+      try {
+        const resultado = {
+          pareja1: {
+            P: parseInt(partidaActual.value),
+            M: mesa.id,
+            id_pareja: mesa.pareja1_id,
+            RP: 0, // Estos valores deberían ser ingresados por el usuario
+            GB: "A"
+          },
+          pareja2: {
+            P: parseInt(partidaActual.value),
+            M: mesa.id,
+            id_pareja: mesa.pareja2_id,
+            RP: 0, // Estos valores deberían ser ingresados por el usuario
+            GB: "A"
+          }
+        };
+        await axios.post('http://localhost:8000/api/resultados', resultado);
+        mesa.resultado_registrado = true;
+      } catch (e) {
+        console.error('Error al registrar el resultado', e);
+        alert('Error al registrar el resultado. Por favor, intente de nuevo.');
+      }
     };
 
-    const modificarResultado = (mesa) => {
+    const modificarResultado = async (mesa) => {
       // Aquí iría la lógica para modificar el resultado
       console.log('Modificar resultado para mesa:', mesa.id);
     };
+
+    const irARegistroResultado = (mesa) => {
+      router.push({
+        name: 'RegistroResultados',
+        params: { 
+          id: mesa.id.toString()
+        },
+        query: {
+          partida: partidaActual.value.toString(),
+          pareja1_id: mesa.pareja1_id ? mesa.pareja1_id.toString() : 'null',
+          pareja2_id: mesa.pareja2_id ? mesa.pareja2_id.toString() : 'null'
+        }
+      });
+    };
+
+    watch(() => router.currentRoute.value, (newRoute) => {
+      if (newRoute.name === 'RegistroPartida') {
+        // Actualizar el estado de las mesas
+        fetchMesas();
+      }
+    });
 
     onMounted(() => {
       fetchMesas();
@@ -107,8 +149,10 @@ export default {
       error,
       partidaActual,
       registrarResultado,
-      modificarResultado
+      modificarResultado,
+      irARegistroResultado
     };
   }
 }
 </script>
+

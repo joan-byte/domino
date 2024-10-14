@@ -5,13 +5,15 @@ class ResultadoBase(BaseModel):
     M: int
     id_pareja: int
     RP: int
-    GB: str = "A"  # Añadimos esta línea con el valor por defecto
+    GB: str = "A"
 
-class ResultadoCreate(ResultadoBase):
-    pass
+class ResultadoCreate(BaseModel):
+    pareja1: ResultadoBase
+    pareja2: ResultadoBase
 
 class ResultadoUpdate(BaseModel):
-    RP: int
+    pareja1: ResultadoBase
+    pareja2: ResultadoBase
 
 class Resultado(ResultadoBase):
     id: int

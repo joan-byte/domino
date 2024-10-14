@@ -6,8 +6,8 @@ import Inicio from '@/components/Partidas/Inicio.vue';
 import Ranking from '@/components/Partidas/Ranking.vue';
 import Mesas from '@/components/Partidas/Mesas.vue';
 import CierrePartida from '@/components/Resultados/CierrePartida.vue';
-import Resultados from '@/components/Resultados/Resultados.vue';
 import RegistroPartida from '@/components/Resultados/Registro_Partida.vue';
+import RegistroResultados from '@/components/Resultados/Resultados.vue';
 
 const routes = [
   {
@@ -46,9 +46,9 @@ const routes = [
     component: CierrePartida
   },
   {
-    path: '/Resultados/Resultados',
-    name: 'Resultados',
-    component: Resultados
+    path: '/resultados/:id',
+    name: 'RegistroResultados',
+    component: RegistroResultados
   },
   {
     path: '/Resultados/Registro_Partida',
