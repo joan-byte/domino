@@ -6,13 +6,21 @@ from sqlalchemy.exc import SQLAlchemyError
 def create_resultado(db: Session, resultado: ResultadoCreate):
     try:
         db_resultado1 = Resultado(**resultado.pareja1.dict())
-        db_resultado2 = Resultado(**resultado.pareja2.dict())
         db.add(db_resultado1)
-        db.add(db_resultado2)
+        
+        if resultado.pareja2:
+            db_resultado2 = Resultado(**resultado.pareja2.dict())
+            db.add(db_resultado2)
+        
         db.commit()
         db.refresh(db_resultado1)
-        db.refresh(db_resultado2)
-        return {"resultado1": db_resultado1, "resultado2": db_resultado2}
+        
+        response = {"resultado1": db_resultado1}
+        if resultado.pareja2:
+            db.refresh(db_resultado2)
+            response["resultado2"] = db_resultado2
+        
+        return response
     except SQLAlchemyError as e:
         db.rollback()
         print(f"Error de base de datos: {str(e)}")
@@ -35,7 +43,11 @@ def update_resultado(db: Session, resultado_id: int, resultado: ResultadoUpdate)
 
 def calculate_and_update_results(db: Session, mesa_id: int):
     resultados = db.query(Resultado).filter(Resultado.M == mesa_id).all()
-    if len(resultados) == 2:
+    if len(resultados) == 1:
+        # Si solo hay una pareja, asignar automáticamente los valores
+        resultados[0].PG = 1
+        resultados[0].PP = 150
+    elif len(resultados) == 2:
         if resultados[0].RP > resultados[1].RP:
             resultados[0].PG, resultados[1].PG = 1, 0
             resultados[0].PP = resultados[0].RP - resultados[1].RP
@@ -47,7 +59,7 @@ def calculate_and_update_results(db: Session, mesa_id: int):
         else:
             resultados[0].PG, resultados[1].PG = 0, 0
             resultados[0].PP, resultados[1].PP = 0, 0
-        db.commit()
+    db.commit()
 
 def mesa_tiene_resultados(db: Session, mesa_id: int, partida: int):
     resultado = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).first()

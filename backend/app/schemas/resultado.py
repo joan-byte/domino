@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class ResultadoBase(BaseModel):
     P: int
@@ -11,7 +12,7 @@ class ResultadoBase(BaseModel):
 
 class ResultadoCreate(BaseModel):
     pareja1: ResultadoBase
-    pareja2: ResultadoBase
+    pareja2: Optional[ResultadoBase] = None
 
 class ResultadoUpdate(BaseModel):
     pareja1: ResultadoBase

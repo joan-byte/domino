@@ -86,19 +86,28 @@ export default {
     });
 
     const calcularResultados = () => {
-      if (pareja1.value.RP > pareja2.value.RP) {
-        pareja1.value.PG = 1;
-        pareja2.value.PG = 0;
-      } else if (pareja1.value.RP < pareja2.value.RP) {
-        pareja1.value.PG = 0;
-        pareja2.value.PG = 1;
+      if (pareja1.value.id_pareja === null || pareja2.value.id_pareja === null) {
+        // Si solo hay una pareja, asignar automáticamente los valores
+        const parejaPresenteRef = pareja1.value.id_pareja !== null ? pareja1 : pareja2;
+        parejaPresenteRef.value.RP = 150;
+        parejaPresenteRef.value.PG = 1;
+        parejaPresenteRef.value.PP = 150;
       } else {
-        pareja1.value.PG = 0;
-        pareja2.value.PG = 0;
-      }
+        // Lógica existente para cuando hay dos parejas
+        if (pareja1.value.RP > pareja2.value.RP) {
+          pareja1.value.PG = 1;
+          pareja2.value.PG = 0;
+        } else if (pareja1.value.RP < pareja2.value.RP) {
+          pareja1.value.PG = 0;
+          pareja2.value.PG = 1;
+        } else {
+          pareja1.value.PG = 0;
+          pareja2.value.PG = 0;
+        }
 
-      pareja1.value.PP = pareja1.value.RP - pareja2.value.RP;
-      pareja2.value.PP = pareja2.value.RP - pareja1.value.RP;
+        pareja1.value.PP = pareja1.value.RP - pareja2.value.RP;
+        pareja2.value.PP = pareja2.value.RP - pareja1.value.RP;
+      }
     };
 
     const guardarResultados = async () => {
@@ -113,7 +122,9 @@ export default {
             PP: parseInt(pareja1.value.PP),
             GB: "A"
           },
-          pareja2: {
+        };
+        if (pareja2.value.id_pareja !== null) {
+          payload.pareja2 = {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
             id_pareja: parseInt(pareja2.value.id_pareja),
@@ -121,8 +132,9 @@ export default {
             PG: parseInt(pareja2.value.PG),
             PP: parseInt(pareja2.value.PP),
             GB: "A"
-          }
-        };
+          };
+        }
+
         console.log('Payload enviado:', payload);
         const response = await axios.post('http://localhost:8000/api/resultados', payload);
         console.log('Respuesta del servidor:', response.data);
@@ -180,6 +192,9 @@ export default {
           pareja2.value.nombre = 'Sin pareja';
           pareja2.value.id_pareja = null;
         }
+
+        // Llamar a calcularResultados después de cargar los datos
+        calcularResultados();
       } catch (e) {
         console.error('Error al cargar los datos de las parejas', e);
         alert('Error al cargar los datos de las parejas. Por favor, intente de nuevo.');
