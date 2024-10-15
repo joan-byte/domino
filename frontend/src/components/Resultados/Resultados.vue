@@ -1,37 +1,57 @@
 <template>
-  <div class="container mx-auto p-4">
+  <div class="container mx-auto p-4 bg-gray-100 rounded-lg shadow-md">
     <h1 class="text-3xl font-bold mb-4">Partida {{ partidaActual }} - Mesa {{ mesaId }} - GB A</h1>
     
-    <div v-for="(pareja, index) in [pareja1, pareja2]" :key="index" class="mb-6">
-      <h2 class="text-2xl font-semibold mb-2">Pareja {{ pareja.id_pareja }}</h2>
-      <p class="text-xl mb-4 text-center">{{ pareja.nombre }}</p>
-      <div class="flex justify-between mb-2">
-        <div>
-          <span class="font-bold">PG:</span> {{ pareja.PG }}
+    <div v-for="(pareja, index) in [pareja1, pareja2]" :key="index" class="mb-4 bg-white p-4 rounded-lg shadow">
+      <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-semibold">Pareja {{ pareja.id_pareja }}</h2>
+        <p class="text-2xl font-semibold">{{ pareja.nombre }}</p>
+        <div class="flex items-center space-x-4">
+          <div>
+            <span class="font-bold">PG:</span>
+            <input 
+              v-model="pareja.PG"
+              :id="`pg-pareja-${pareja.id_pareja}`"
+              :name="`pg-pareja-${pareja.id_pareja}`"
+              type="number"
+              min="0"
+              max="1"
+              readonly
+              class="w-24 px-2 py-1 border rounded"
+            >
+          </div>
+          <div>
+            <span class="font-bold">PP:</span>
+            <input 
+              v-model="pareja.PP"
+              :id="`pp-pareja-${pareja.id_pareja}`"
+              :name="`pp-pareja-${pareja.id_pareja}`"
+              type="number"
+              readonly
+              class="w-24 px-2 py-1 border rounded"
+            >
+          </div>
+          <div>
+            <span class="font-bold">RP:</span>
+            <input 
+              v-model="pareja.RP"
+              :id="`rp-pareja-${pareja.id_pareja}`"
+              :name="`rp-pareja-${pareja.id_pareja}`"
+              type="number"
+              min="0"
+              max="300"
+              required
+              @input="calcularResultados"
+              class="w-24 px-2 py-1 border rounded"
+            >
+          </div>
         </div>
-        <div>
-          <span class="font-bold">PP:</span> {{ pareja.PP }}
-        </div>
-      </div>
-      <div>
-        <label :for="`rp-pareja${index + 1}`" class="block text-sm font-medium text-gray-700">
-          RP Pareja {{ index + 1 }}
-        </label>
-        <input 
-          :id="`rp-pareja${index + 1}`"
-          v-model="pareja.RP"
-          type="number"
-          min="0"
-          max="300"
-          required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        >
       </div>
     </div>
 
     <button 
       @click="guardarResultados"
-      class="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
+      class="mx-auto mt-6 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-lg font-semibold"
     >
       Guardar Resultados
     </button>
@@ -65,6 +85,22 @@ export default {
       PP: 0
     });
 
+    const calcularResultados = () => {
+      if (pareja1.value.RP > pareja2.value.RP) {
+        pareja1.value.PG = 1;
+        pareja2.value.PG = 0;
+      } else if (pareja1.value.RP < pareja2.value.RP) {
+        pareja1.value.PG = 0;
+        pareja2.value.PG = 1;
+      } else {
+        pareja1.value.PG = 0;
+        pareja2.value.PG = 0;
+      }
+
+      pareja1.value.PP = pareja1.value.RP - pareja2.value.RP;
+      pareja2.value.PP = pareja2.value.RP - pareja1.value.RP;
+    };
+
     const guardarResultados = async () => {
       try {
         const payload = {
@@ -73,6 +109,8 @@ export default {
             M: parseInt(mesaId.value),
             id_pareja: pareja1.value.id_pareja,
             RP: parseInt(pareja1.value.RP),
+            PG: parseInt(pareja1.value.PG),
+            PP: parseInt(pareja1.value.PP),
             GB: "A"
           },
           pareja2: {
@@ -80,6 +118,8 @@ export default {
             M: parseInt(mesaId.value),
             id_pareja: pareja2.value.id_pareja,
             RP: parseInt(pareja2.value.RP),
+            PG: parseInt(pareja2.value.PG),
+            PP: parseInt(pareja2.value.PP),
             GB: "A"
           }
         };
@@ -126,9 +166,9 @@ export default {
       partidaActual,
       pareja1,
       pareja2,
+      calcularResultados,
       guardarResultados
     };
   }
 }
 </script>
-

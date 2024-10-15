@@ -5,6 +5,8 @@ class ResultadoBase(BaseModel):
     M: int
     id_pareja: int
     RP: int
+    PG: int
+    PP: int
     GB: str = "A"
 
 class ResultadoCreate(BaseModel):
@@ -17,8 +19,6 @@ class ResultadoUpdate(BaseModel):
 
 class Resultado(ResultadoBase):
     id: int
-    PG: int
-    PP: int
 
     class Config:
         from_attributes = True
