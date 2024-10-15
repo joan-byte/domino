@@ -34,14 +34,14 @@
           <div>
             <span class="font-bold">RP:</span>
             <input 
-              v-model="pareja.RP"
+              v-model.number="pareja.RP"
               :id="`rp-pareja-${pareja.id_pareja}`"
               :name="`rp-pareja-${pareja.id_pareja}`"
               type="number"
               min="0"
               max="300"
               required
-              @input="calcularResultados"
+              @input="validarRP(pareja)"
               class="w-24 px-2 py-1 border rounded"
             >
           </div>
@@ -107,7 +107,7 @@ export default {
           pareja1: {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
-            id_pareja: pareja1.value.id_pareja,
+            id_pareja: parseInt(pareja1.value.id_pareja),
             RP: parseInt(pareja1.value.RP),
             PG: parseInt(pareja1.value.PG),
             PP: parseInt(pareja1.value.PP),
@@ -116,20 +116,46 @@ export default {
           pareja2: {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
-            id_pareja: pareja2.value.id_pareja,
+            id_pareja: parseInt(pareja2.value.id_pareja),
             RP: parseInt(pareja2.value.RP),
             PG: parseInt(pareja2.value.PG),
             PP: parseInt(pareja2.value.PP),
             GB: "A"
           }
         };
-        await axios.post('http://localhost:8000/api/resultados', payload);
+        console.log('Payload enviado:', payload);
+        const response = await axios.post('http://localhost:8000/api/resultados', payload);
+        console.log('Respuesta del servidor:', response.data);
         alert('Resultados guardados con éxito');
         router.push('/resultados/registro_partida');
       } catch (e) {
         console.error('Error al guardar los resultados', e);
-        alert('Error al guardar los resultados. Por favor, intente de nuevo.');
+        if (e.response) {
+          console.error('Datos de la respuesta de error:', e.response.data);
+          alert(`Error del servidor: ${e.response.status} - ${JSON.stringify(e.response.data)}`);
+        } else if (e.request) {
+          console.error('No se recibió respuesta del servidor');
+          alert('No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.');
+        } else {
+          console.error('Error al configurar la solicitud:', e.message);
+          alert(`Error al procesar la solicitud: ${e.message}`);
+        }
       }
+    };
+
+    const validarRP = (pareja) => {
+      const valor = pareja.RP;
+      if (valor < 0) {
+        alert("El resultado no puede ser negativo");
+        pareja.RP = 0;
+      } else if (valor > 300) {
+        alert("El resultado debe ser como máximo 300");
+        pareja.RP = 300;
+      } else if (!Number.isInteger(valor)) {
+        alert("El resultado debe ser un número entero");
+        pareja.RP = Math.round(valor);
+      }
+      calcularResultados();
     };
 
     onMounted(async () => {
@@ -167,8 +193,10 @@ export default {
       pareja1,
       pareja2,
       calcularResultados,
-      guardarResultados
+      guardarResultados,
+      validarRP
     };
   }
 }
 </script>
+

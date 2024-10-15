@@ -75,10 +75,15 @@ export default {
     const fetchMesas = async () => {
       try {
         const response = await axios.get('http://localhost:8000/api/mesas-registro');
-        mesas.value = response.data.map(mesa => ({
-          ...mesa,
-          resultado_registrado: false
-        }));
+        const mesasData = response.data;
+        
+        // Verificar si cada mesa tiene resultados
+        for (let mesa of mesasData) {
+          const resultadoCheck = await axios.get(`http://localhost:8000/api/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`);
+          mesa.resultado_registrado = resultadoCheck.data.tiene_resultados;
+        }
+        
+        mesas.value = mesasData;
       } catch (e) {
         console.error('Error al obtener las mesas', e);
         error.value = 'Error al cargar las mesas. Por favor, intente de nuevo.';

@@ -7,16 +7,16 @@ from typing import List
 from app.models.jugador import Pareja
 from app.schemas.jugador import ParejaSchema
 from sqlalchemy.orm import Session
+import logging
 
 app = FastAPI()
 
-# Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # Origen de su aplicación frontend
+    allow_origins=["http://localhost:8080"],
     allow_credentials=True,
-    allow_methods=["*"],  # Permite todos los métodos
-    allow_headers=["*"],  # Permite todos los headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Crear las tablas en la base de datos
@@ -30,3 +30,9 @@ app.include_router(resultados.router, prefix="/api", tags=["resultados"])
 @app.get("/")
 def read_root():
     return {"message": "Bienvenido a la API del Campeonato de Dominó"}
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logging.info(f"Solicitud recibida: {request.method} {request.url}")
+    response = await call_next(request)
+    return response
