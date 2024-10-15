@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.resultado import Resultado
 from app.schemas.resultado import ResultadoCreate, ResultadoUpdate
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 def create_resultado(db: Session, resultado: ResultadoCreate):
     try:
@@ -64,3 +65,31 @@ def calculate_and_update_results(db: Session, mesa_id: int):
 def mesa_tiene_resultados(db: Session, mesa_id: int, partida: int):
     resultado = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).first()
     return resultado is not None
+
+def get_resultados(db: Session, mesa_id: int, partida: int):
+    resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+    if not resultados:
+        raise HTTPException(status_code=404, detail="Resultados no encontrados")
+    
+    response = {}
+    for resultado in resultados:
+        key = f"pareja{1 if resultado.id_pareja == resultados[0].id_pareja else 2}"
+        response[key] = resultado
+    
+    return response
+
+def update_resultados(db: Session, mesa_id: int, partida: int, resultado: ResultadoCreate):
+    existing_resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+    if not existing_resultados:
+        raise HTTPException(status_code=404, detail="Resultados no encontrados")
+    
+    for existing_resultado in existing_resultados:
+        if existing_resultado.id_pareja == resultado.pareja1.id_pareja:
+            for key, value in resultado.pareja1.dict().items():
+                setattr(existing_resultado, key, value)
+        elif resultado.pareja2 and existing_resultado.id_pareja == resultado.pareja2.id_pareja:
+            for key, value in resultado.pareja2.dict().items():
+                setattr(existing_resultado, key, value)
+    
+    db.commit()
+    return get_resultados(db, mesa_id, partida)

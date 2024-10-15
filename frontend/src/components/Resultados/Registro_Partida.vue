@@ -119,8 +119,18 @@ export default {
     };
 
     const modificarResultado = async (mesa) => {
-      // Aquí iría la lógica para modificar el resultado
-      console.log('Modificar resultado para mesa:', mesa.id);
+      router.push({
+        name: 'RegistroResultados',
+        params: { 
+          id: mesa.id.toString()
+        },
+        query: {
+          partida: partidaActual.value.toString(),
+          pareja1_id: mesa.pareja1_id ? mesa.pareja1_id.toString() : 'null',
+          pareja2_id: mesa.pareja2_id ? mesa.pareja2_id.toString() : 'null',
+          modificar: 'true'
+        }
+      });
     };
 
     const irARegistroResultado = (mesa) => {
@@ -160,4 +170,3 @@ export default {
   }
 }
 </script>
-

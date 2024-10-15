@@ -49,12 +49,21 @@
       </div>
     </div>
 
-    <button 
-      @click="guardarResultados"
-      class="mx-auto mt-6 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-lg font-semibold"
-    >
-      Guardar Resultados
-    </button>
+    <div class="flex justify-center space-x-4 mt-6">
+      <button 
+        @click="guardarResultados"
+        class="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-lg font-semibold"
+      >
+        {{ isModificando ? 'Modificar Resultados' : 'Guardar Resultados' }}
+      </button>
+      <button 
+        v-if="isModificando"
+        @click="cancelarModificacion"
+        class="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-lg font-semibold"
+      >
+        Cancelar
+      </button>
+    </div>
   </div>
 </template>
 
@@ -70,6 +79,7 @@ export default {
     const router = useRouter();
     const mesaId = ref(route.params.id);
     const partidaActual = ref(route.query.partida);
+    const isModificando = ref(route.query.modificar === 'true');
     const pareja1 = ref({
       id_pareja: route.query.pareja1_id,
       nombre: '',
@@ -87,13 +97,11 @@ export default {
 
     const calcularResultados = () => {
       if (pareja1.value.id_pareja === null || pareja2.value.id_pareja === null) {
-        // Si solo hay una pareja, asignar automáticamente los valores
         const parejaPresenteRef = pareja1.value.id_pareja !== null ? pareja1 : pareja2;
         parejaPresenteRef.value.RP = 150;
         parejaPresenteRef.value.PG = 1;
         parejaPresenteRef.value.PP = 150;
       } else {
-        // Lógica existente para cuando hay dos parejas
         if (pareja1.value.RP > pareja2.value.RP) {
           pareja1.value.PG = 1;
           pareja2.value.PG = 0;
@@ -136,9 +144,14 @@ export default {
         }
 
         console.log('Payload enviado:', payload);
-        const response = await axios.post('http://localhost:8000/api/resultados', payload);
+        let response;
+        if (isModificando.value) {
+          response = await axios.put(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`, payload);
+        } else {
+          response = await axios.post('http://localhost:8000/api/resultados', payload);
+        }
         console.log('Respuesta del servidor:', response.data);
-        alert('Resultados guardados con éxito');
+        alert(isModificando.value ? 'Resultados modificados con éxito' : 'Resultados guardados con éxito');
         router.push('/resultados/registro_partida');
       } catch (e) {
         console.error('Error al guardar los resultados', e);
@@ -170,6 +183,10 @@ export default {
       calcularResultados();
     };
 
+    const cancelarModificacion = () => {
+      router.push('/resultados/registro_partida');
+    };
+
     onMounted(async () => {
       try {
         const id1 = route.query.pareja1_id;
@@ -193,7 +210,15 @@ export default {
           pareja2.value.id_pareja = null;
         }
 
-        // Llamar a calcularResultados después de cargar los datos
+        if (isModificando.value) {
+          const resultadosResponse = await axios.get(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`);
+          const resultados = resultadosResponse.data;
+          pareja1.value = { ...pareja1.value, ...resultados.pareja1 };
+          if (resultados.pareja2) {
+            pareja2.value = { ...pareja2.value, ...resultados.pareja2 };
+          }
+        }
+
         calcularResultados();
       } catch (e) {
         console.error('Error al cargar los datos de las parejas', e);
@@ -209,9 +234,10 @@ export default {
       pareja2,
       calcularResultados,
       guardarResultados,
-      validarRP
+      validarRP,
+      isModificando,
+      cancelarModificacion
     };
   }
 }
 </script>
-
