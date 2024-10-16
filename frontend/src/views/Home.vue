@@ -6,19 +6,26 @@
     <div v-else-if="error">{{ error }}</div>
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="campeonato in campeonatos" :key="campeonato.id" 
-           @click="handleCampeonatoClick(campeonato)"
-           :class="['campeonato-card', { 'campeonato-card-selected': campeonato.id.toString() === campeonatoSeleccionadoId }]">
+           class="campeonato-card">
         <h3 class="text-lg font-semibold mb-2">{{ campeonato.nombre }}</h3>
         <p class="text-sm text-gray-600 mb-1">Fecha de inicio: {{ formatDate(campeonato.fecha_inicio) }}</p>
         <p class="text-sm text-gray-600 mb-1">Duración: {{ campeonato.dias_duracion }} días</p>
         <p class="text-sm text-gray-600">Número de partidas: {{ campeonato.numero_partidas }}</p>
+        <div class="mt-4 flex justify-between">
+          <button @click="modificarCampeonato(campeonato)" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+            Modificar
+          </button>
+          <button @click="seleccionarOSalirCampeonato(campeonato)" :class="buttonClass(campeonato)">
+            {{ buttonText(campeonato) }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import '@/assets/CampeonatoCard.css';
@@ -29,7 +36,12 @@ const api = axios.create({
 
 export default {
   name: 'HomeView',
-  props: ['seleccionandoCampeonato'],
+  props: {
+    seleccionandoCampeonato: {
+      type: Boolean,
+      default: false
+    }
+  },
   emits: ['campeonato-seleccionado'],
   setup(props, { emit }) {
     const campeonatos = ref([]);
@@ -38,25 +50,15 @@ export default {
     const router = useRouter();
     const campeonatoSeleccionadoId = ref(localStorage.getItem('campeonato_id') || null);
 
-    const hayCampeonatoSeleccionado = computed(() => {
-      return !!localStorage.getItem('campeonato_id');
-    });
-
     const fetchCampeonatos = async () => {
       isLoading.value = true;
       error.value = null;
       try {
-        const response = await api.get('/api/campeonatos/');
+        const response = await api.get('/api/campeonatos');
         campeonatos.value = response.data;
-      } catch (err) {
-        console.error('Error al cargar los campeonatos:', err);
-        if (err.response) {
-          error.value = `Error del servidor: ${err.response.status} - ${err.response.data.detail || 'Error desconocido'}`;
-        } else if (err.request) {
-          error.value = 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.';
-        } else {
-          error.value = `Error al procesar la solicitud: ${err.message}`;
-        }
+      } catch (e) {
+        console.error('Error al obtener los campeonatos', e);
+        error.value = 'Error al cargar los campeonatos. Por favor, intente de nuevo.';
       } finally {
         isLoading.value = false;
       }
@@ -68,44 +70,84 @@ export default {
       return new Date(dateString).toLocaleDateString('es-ES', options);
     };
 
-    const handleCampeonatoClick = (campeonato) => {
-      if (props.seleccionandoCampeonato) {
-        localStorage.setItem('campeonato_id', campeonato.id.toString());
-        localStorage.setItem('campeonato_nombre', campeonato.nombre);
-        localStorage.setItem('campeonato_partidas', campeonato.numero_partidas.toString());
-        campeonatoSeleccionadoId.value = campeonato.id.toString();
-        emit('campeonato-seleccionado', true);
-      } else {
-        router.push({ name: 'Campeonatos', params: { id: campeonato.id } });
-      }
+    const modificarCampeonato = (campeonato) => {
+      router.push({ name: 'Campeonatos', params: { id: campeonato.id } });
     };
 
-    const updateSelectedCampeonato = () => {
-      campeonatoSeleccionadoId.value = localStorage.getItem('campeonato_id') || null;
+    const seleccionarOSalirCampeonato = async (campeonato) => {
+      if (campeonatoSeleccionadoId.value !== campeonato.id.toString()) {
+        // Seleccionar campeonato
+        try {
+          const campeonatoResponse = await api.get(`/api/campeonatos/${campeonato.id}`);
+          const campeonatoData = campeonatoResponse.data;
+
+          localStorage.setItem('campeonato_id', campeonatoData.id.toString());
+          localStorage.setItem('campeonato_nombre', campeonatoData.nombre);
+          localStorage.setItem('campeonato_partidas', campeonatoData.numero_partidas.toString());
+
+          try {
+            const resultadosResponse = await api.get(`/api/campeonatos/${campeonato.id}/ultima-partida`);
+            const partidaActual = resultadosResponse.data.ultima_partida;
+
+            if (partidaActual > 0) {
+              localStorage.setItem('partida_actual', partidaActual.toString());
+              localStorage.setItem('inscripcionAbierta', 'false');
+              localStorage.setItem('sorteoRealizado', 'true');
+            } else {
+              localStorage.removeItem('partida_actual');
+              localStorage.setItem('inscripcionAbierta', 'true');
+              localStorage.setItem('sorteoRealizado', 'false');
+            }
+          } catch (error) {
+            console.error('Error al obtener la última partida:', error);
+            localStorage.removeItem('partida_actual');
+            localStorage.setItem('inscripcionAbierta', 'true');
+            localStorage.setItem('sorteoRealizado', 'false');
+          }
+
+          campeonatoSeleccionadoId.value = campeonatoData.id.toString();
+          emit('campeonato-seleccionado', true);
+        } catch (error) {
+          console.error('Error al cargar los datos del campeonato', error);
+          alert('Error al cargar los datos del campeonato. Por favor, intente de nuevo.');
+        }
+      } else {
+        // Salir del campeonato
+        localStorage.clear();
+        campeonatoSeleccionadoId.value = null;
+        emit('campeonato-seleccionado', false);
+      }
+      router.push('/');
+    };
+
+    const buttonText = (campeonato) => {
+      return campeonatoSeleccionadoId.value === campeonato.id.toString() ? 'Salir del campeonato' : 'Seleccionar';
+    };
+
+    const buttonClass = (campeonato) => {
+      return campeonatoSeleccionadoId.value === campeonato.id.toString()
+        ? 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
+        : 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded';
     };
 
     onMounted(() => {
       fetchCampeonatos();
-      updateSelectedCampeonato();
     });
 
     watch(() => localStorage.getItem('campeonato_id'), (newValue) => {
       campeonatoSeleccionadoId.value = newValue || null;
     }, { immediate: true });
 
-    // Observar cambios en la ruta
-    watch(() => router.currentRoute.value.fullPath, () => {
-      updateSelectedCampeonato();
-    });
-
     return {
       campeonatos,
       isLoading,
       error,
       formatDate,
-      handleCampeonatoClick,
+      modificarCampeonato,
+      seleccionarOSalirCampeonato,
       campeonatoSeleccionadoId,
-      hayCampeonatoSeleccionado
+      buttonText,
+      buttonClass
     };
   }
 }

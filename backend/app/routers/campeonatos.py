@@ -7,6 +7,8 @@ from typing import List
 from app.models.jugador import Jugador, Pareja
 from app.schemas.jugador import ParejaCreate, ParejaSchema, ParejaUpdate
 from app.crud.pareja import update_pareja
+from sqlalchemy.sql import func
+from app.models import Resultado
 
 router = APIRouter()
 
@@ -82,3 +84,8 @@ def crear_pareja_campeonato(campeonato_id: int, pareja: ParejaCreate, db: Sessio
 @router.put("/parejas/{pareja_id}", response_model=ParejaSchema)
 def actualizar_pareja(pareja_id: int, pareja: ParejaUpdate, db: Session = Depends(get_db)):
     return update_pareja(db, pareja_id, pareja)
+
+@router.get("/{campeonato_id}/ultima-partida")
+def get_ultima_partida(campeonato_id: int, db: Session = Depends(get_db)):
+    ultima_partida = db.query(func.max(Resultado.P)).filter(Resultado.campeonato_id == campeonato_id).scalar()
+    return {"ultima_partida": ultima_partida or 0}

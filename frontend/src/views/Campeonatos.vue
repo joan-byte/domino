@@ -1,62 +1,66 @@
 <template>
   <div class="container mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-4">Gestión de Campeonatos</h1>
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-      <div>
-        <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre:</label>
-        <input
-          type="text"
-          id="nombre"
-          v-model="formData.nombre"
-          required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        />
+    <h1 class="text-2xl font-bold mb-4 text-center">Gestión de Campeonatos</h1>
+    <div class="flex justify-center">
+      <div class="w-full md:w-1/3">
+        <form @submit.prevent="handleSubmit" class="space-y-4 bg-white p-6 rounded-lg shadow-md">
+          <div>
+            <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre:</label>
+            <input
+              type="text"
+              id="nombre"
+              v-model="formData.nombre"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
+          <div>
+            <label for="fecha_inicio" class="block text-sm font-medium text-gray-700">Fecha de inicio:</label>
+            <input
+              type="date"
+              id="fecha_inicio"
+              v-model="formData.fecha_inicio"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
+          <div>
+            <label for="dias_duracion" class="block text-sm font-medium text-gray-700">Duración (días):</label>
+            <input
+              type="number"
+              id="dias_duracion"
+              v-model="formData.dias_duracion"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
+          <div>
+            <label for="numero_partidas" class="block text-sm font-medium text-gray-700">Número de partidas:</label>
+            <input
+              type="number"
+              id="numero_partidas"
+              v-model="formData.numero_partidas"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
+          <div class="flex space-x-2 justify-end">
+            <button v-if="isEditing" type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Modificar
+            </button>
+            <button v-else type="submit" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+              Guardar
+            </button>
+            <button v-if="isEditing" @click="handleDelete" type="button" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+              Eliminar
+            </button>
+            <button @click="handleCancel" type="button" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
-      <div>
-        <label for="fecha_inicio" class="block text-sm font-medium text-gray-700">Fecha de inicio:</label>
-        <input
-          type="date"
-          id="fecha_inicio"
-          v-model="formData.fecha_inicio"
-          required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        />
-      </div>
-      <div>
-        <label for="dias_duracion" class="block text-sm font-medium text-gray-700">Duración (días):</label>
-        <input
-          type="number"
-          id="dias_duracion"
-          v-model="formData.dias_duracion"
-          required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        />
-      </div>
-      <div>
-        <label for="numero_partidas" class="block text-sm font-medium text-gray-700">Número de partidas:</label>
-        <input
-          type="number"
-          id="numero_partidas"
-          v-model="formData.numero_partidas"
-          required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-        />
-      </div>
-      <div class="flex space-x-2">
-        <button v-if="isEditing" type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Modificar
-        </button>
-        <button v-else type="submit" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-          Guardar
-        </button>
-        <button v-if="isEditing" @click="handleDelete" type="button" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-          Eliminar
-        </button>
-        <button @click="handleCancel" type="button" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-          Cancelar
-        </button>
-      </div>
-    </form>
+    </div>
   </div>
 </template>
 
@@ -208,3 +212,4 @@ export default {
   },
 };
 </script>
+

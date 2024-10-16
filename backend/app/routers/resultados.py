@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.crud import resultados as crud_resultado
 from app.schemas.resultado import ResultadoSchema, ResultadoCreate, Resultado, ResultadoResponse
+from sqlalchemy import func
+from sqlalchemy.sql import func
 
 router = APIRouter()
 
@@ -33,5 +35,7 @@ def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db
         return crud_resultado.update_resultados(db, mesa_id, partida, resultado)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 # Añade más rutas según sea necesario
