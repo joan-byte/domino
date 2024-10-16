@@ -32,7 +32,7 @@ def realizar_sorteo_inicial(db: Session = Depends(get_db)):
     crud_mesa.eliminar_todas_mesas(db)
     
     mesas = crud_mesa.crear_mesas(db, parejas_activas)
-    return {"mesas": mesas, "partida_actual": 1}
+    return mesas
 
 @router.get("/mesas", response_model=List[MesaConParejas])
 def obtener_mesas(db: Session = Depends(get_db)):
@@ -50,5 +50,6 @@ def obtener_parejas_mesas(db: Session = Depends(get_db)):
 @router.get("/mesas-registro", response_model=List[MesaConParejas])
 def obtener_mesas_registro(db: Session = Depends(get_db)):
     return crud_mesa.obtener_mesas_para_registro(db)
+
 
 

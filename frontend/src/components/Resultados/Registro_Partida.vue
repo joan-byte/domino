@@ -79,8 +79,13 @@ export default {
         
         // Verificar si cada mesa tiene resultados
         for (let mesa of mesasData) {
-          const resultadoCheck = await axios.get(`http://localhost:8000/api/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`);
-          mesa.resultado_registrado = resultadoCheck.data.tiene_resultados;
+          try {
+            const resultadoCheck = await axios.get(`http://localhost:8000/api/resultados/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`);
+            mesa.resultado_registrado = resultadoCheck.data.tiene_resultados;
+          } catch (e) {
+            console.error(`Error al verificar resultados para mesa ${mesa.id}:`, e);
+            mesa.resultado_registrado = false;
+          }
         }
         
         mesas.value = mesasData;
@@ -170,3 +175,4 @@ export default {
   }
 }
 </script>
+

@@ -120,7 +120,13 @@ export default {
 
     const guardarResultados = async () => {
       try {
+        const campeonatoId = localStorage.getItem('campeonato_id');
+        if (!campeonatoId) {
+          throw new Error('ID del campeonato no encontrado');
+        }
+
         const payload = {
+          campeonato_id: parseInt(campeonatoId),
           pareja1: {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
@@ -129,9 +135,10 @@ export default {
             PG: parseInt(pareja1.value.PG),
             PP: parseInt(pareja1.value.PP),
             GB: "A"
-          },
+          }
         };
-        if (pareja2.value.id_pareja !== null) {
+
+        if (pareja2.value && pareja2.value.id_pareja !== null) {
           payload.pareja2 = {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
@@ -148,7 +155,7 @@ export default {
         if (isModificando.value) {
           response = await axios.put(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`, payload);
         } else {
-          response = await axios.post('http://localhost:8000/api/resultados', payload);
+          response = await axios.post('http://localhost:8000/api/resultados/create', payload);
         }
         console.log('Respuesta del servidor:', response.data);
         alert(isModificando.value ? 'Resultados modificados con éxito' : 'Resultados guardados con éxito');

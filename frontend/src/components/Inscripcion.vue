@@ -236,10 +236,12 @@ export default {
       isLoading.value = true;
       error.value = null;
       try {
+        console.log('campeonatoId.value:', campeonatoId.value);
         if (!campeonatoId.value) {
           throw new Error('ID del campeonato no definido');
         }
         const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/parejas`);
+        console.log('Parejas obtenidas:', response.data);
         parejas.value = response.data;
       } catch (e) {
         console.error('Error al obtener las parejas', e);

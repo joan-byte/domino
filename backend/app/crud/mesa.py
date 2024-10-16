@@ -21,6 +21,11 @@ def crear_mesas(db: Session, parejas_activas: List[Pareja]) -> List[Mesa]:
         mesas.append(mesa)
     
     db.commit()
+    
+    # Refrescar los objetos Mesa para asegurarnos de que tienen todos los atributos actualizados
+    for mesa in mesas:
+        db.refresh(mesa)
+    
     return mesas
 
 def obtener_mesas(db: Session) -> List[Mesa]:

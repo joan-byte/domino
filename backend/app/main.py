@@ -25,7 +25,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(jugadores.router, prefix="/api", tags=["jugadores"])
 app.include_router(campeonatos.router, prefix="/api/campeonatos", tags=["campeonatos"])
 app.include_router(partidas.router, prefix="/api")
-app.include_router(resultados.router, prefix="/api", tags=["resultados"])
+app.include_router(resultados.router, prefix="/api/resultados", tags=["resultados"])
 
 @app.get("/")
 def read_root():
