@@ -1,3 +1,10 @@
+import os
+import sys
+
+# Añade el directorio raíz del proyecto al PYTHONPATH
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
 from faker import Faker
 from sqlalchemy.orm import Session
 from app.models.jugador import Pareja, Jugador
@@ -13,10 +20,6 @@ def crear_parejas_prueba(db: Session, campeonato_id: int, num_parejas: int):
         print(f"No se encontró un campeonato con id {campeonato_id}")
         return
 
-    # Obtener el número más alto de pareja existente para este campeonato
-    ultima_pareja = db.query(Pareja).filter(Pareja.campeonato_id == campeonato_id).order_by(Pareja.numero.desc()).first()
-    numero_inicial = 1 if not ultima_pareja else ultima_pareja.numero + 1
-
     parejas = []
     for i in range(num_parejas):
         # Generar nombres y apellidos para dos jugadores
@@ -30,15 +33,14 @@ def crear_parejas_prueba(db: Session, campeonato_id: int, num_parejas: int):
         pareja = Pareja(
             nombre=nombre_pareja,
             campeonato_id=campeonato.id,
-            activa=True,
-            numero=numero_inicial + i  # Asignar número secuencial
+            activa=True
         )
         db.add(pareja)
         db.flush()  # Para obtener el ID de la pareja
 
         # Crear los jugadores asociados a la pareja
-        jugador1 = Jugador(nombre=nombre1, apellido=apellido1, pareja_id=pareja.id)
-        jugador2 = Jugador(nombre=nombre2, apellido=apellido2, pareja_id=pareja.id)
+        jugador1 = Jugador(nombre=nombre1, apellido=apellido1, pareja_id=pareja.id, campeonato_id=campeonato.id)
+        jugador2 = Jugador(nombre=nombre2, apellido=apellido2, pareja_id=pareja.id, campeonato_id=campeonato.id)
         
         db.add(jugador1)
         db.add(jugador2)
@@ -47,8 +49,9 @@ def crear_parejas_prueba(db: Session, campeonato_id: int, num_parejas: int):
     
     db.commit()
 
-    print(f"Se han creado {len(parejas)} parejas de prueba para el campeonato '{campeonato.nombre}' (ID: {campeonato.id}).")
-    print(f"Los números de las parejas van desde {numero_inicial} hasta {numero_inicial + num_parejas - 1}.")
+    # Verificar el número total de jugadores creados
+    total_jugadores = db.query(Jugador).filter(Jugador.campeonato_id == campeonato_id).count()
+    print(f"Se han creado un total de {total_jugadores} jugadores para el campeonato '{campeonato.nombre}' (ID: {campeonato.id}).")
 
 if __name__ == "__main__":
     db = SessionLocal()

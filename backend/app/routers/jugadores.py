@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.models.jugador import Jugador, Pareja
 from app.schemas.jugador import ParejaCreate, ParejaSchema, JugadorSchema, ParejaUpdate  # Añadimos JugadorSchema aquí
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -31,18 +31,21 @@ def crear_pareja_con_jugadores(pareja: ParejaCreate, db: Session = Depends(get_d
     return db_pareja
 
 @router.get("/parejas/", response_model=List[ParejaSchema])
-def obtener_parejas(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def obtener_parejas(db: Session = Depends(get_db)):
     try:
-        parejas = db.query(Pareja).options(joinedload(Pareja.jugadores)).offset(skip).limit(limit).all()
+        parejas = db.query(Pareja).options(joinedload(Pareja.jugadores)).all()
         return parejas
     except Exception as e:
         logger.exception(f"Error detallado al obtener parejas: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 @router.get("/jugadores/", response_model=List[JugadorSchema])
-def listar_jugadores(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def listar_jugadores(campeonato_id: Optional[int] = None, db: Session = Depends(get_db)):
     try:
-        jugadores = db.query(Jugador).offset(skip).limit(limit).all()
+        query = db.query(Jugador)
+        if campeonato_id:
+            query = query.filter(Jugador.campeonato_id == campeonato_id)
+        jugadores = query.all()
         logger.info(f"Obtenidos {len(jugadores)} jugadores")
         return jugadores
     except Exception as e:
@@ -71,14 +74,29 @@ def actualizar_pareja(pareja_id: int, pareja: ParejaUpdate, db: Session = Depend
         if not db_pareja:
             raise HTTPException(status_code=404, detail="Pareja no encontrada")
         
+        # Actualizar los campos de la pareja
         db_pareja.activa = pareja.activa
         db_pareja.club = pareja.club
+        db_pareja.campeonato_id = pareja.campeonato_id
+
+        # Actualizar los jugadores
+        jugadores = db.query(Jugador).filter(Jugador.pareja_id == pareja_id).all()
+        if len(jugadores) != 2:
+            raise HTTPException(status_code=400, detail="La pareja debe tener exactamente dos jugadores")
+
+        for i, jugador_data in enumerate([pareja.jugador1, pareja.jugador2]):
+            jugador = jugadores[i]
+            jugador.nombre = jugador_data.nombre
+            jugador.apellido = jugador_data.apellido
+            jugador.campeonato_id = pareja.campeonato_id
 
         db.add(db_pareja)
+        db.add_all(jugadores)
         db.commit()
         db.refresh(db_pareja)
         return db_pareja
     except Exception as e:
+        db.rollback()
         logger.error(f"Error al actualizar pareja: {str(e)}")
         raise HTTPException(status_code=422, detail=f"Error al procesar la solicitud: {str(e)}")
 

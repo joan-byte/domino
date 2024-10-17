@@ -11,8 +11,8 @@ def get_pareja(db: Session, pareja_id: int) -> Pareja:
         raise HTTPException(status_code=404, detail="Pareja no encontrada")
     return pareja
 
-def get_parejas(db: Session, skip: int = 0, limit: int = 100) -> List[Pareja]:
-    return db.query(Pareja).offset(skip).limit(limit).all()
+def get_parejas(db: Session) -> List[Pareja]:
+    return db.query(Pareja).all()
 
 def create_pareja(db: Session, pareja: jugador_schema.ParejaCreate) -> Pareja:
     db_pareja = Pareja(**pareja.dict())

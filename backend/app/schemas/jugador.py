@@ -41,9 +41,13 @@ class ParejaInDBBase(ParejaBase):
 class ParejaSchema(ParejaInDBBase):
     pass
 
+class JugadorUpdateForPairing(BaseModel):
+    nombre: str
+    apellido: str
+
 class ParejaUpdate(BaseModel):
-    jugador1: JugadorCreate
-    jugador2: JugadorCreate
-    club: str
+    jugador1: JugadorUpdateForPairing
+    jugador2: JugadorUpdateForPairing
+    club: Optional[str] = None
     activa: bool
     campeonato_id: int
