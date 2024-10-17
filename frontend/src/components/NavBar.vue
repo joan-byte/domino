@@ -1,30 +1,34 @@
 <template>
-  <nav class="bg-blue-500 p-4 flex justify-between items-center">
-    <ul class="flex space-x-4">
-      <li v-if="!campeonatoSeleccionado"><router-link to="/" class="text-white hover:text-gray-200">Inicio</router-link></li>
-      <li v-if="!campeonatoSeleccionado"><router-link to="/campeonatos" class="text-white hover:text-gray-200">Campeonatos</router-link></li>
-      <li v-if="campeonatoSeleccionado"><router-link to="/inscripcion" class="text-white hover:text-gray-200">Inscripción</router-link></li>
-      <template v-if="campeonatoSeleccionado">
-        <li v-for="(files, dir) in componentDirectories" :key="dir" class="relative">
-          <div @mouseleave="closeDropdown" @mouseenter="cancelCloseDropdown">
-            <span 
-              @click="toggleDropdown(dir)"
-              class="text-white hover:text-gray-200 cursor-pointer"
-            >
-              {{ dir }}
-            </span>
-            <ul 
-              v-show="openDropdown === dir"
-              class="absolute bg-white text-blue-500 mt-2 rounded shadow-lg"
-            >
-              <li v-for="file in files" :key="file" class="px-4 py-2 hover:bg-blue-100">
-                <router-link :to="`/${dir}/${file}`">{{ file }}</router-link>
-              </li>
-            </ul>
-          </div>
-        </li>
-      </template>
-    </ul>
+  <nav class="bg-blue-500 p-4">
+    <div class="container mx-auto px-8 flex justify-between items-center">
+      <div class="ml-4">
+        <router-link to="/" class="text-white hover:text-gray-200 text-xl font-bold">Home</router-link>
+      </div>
+      <ul class="flex space-x-6 items-center mr-4">
+        <li v-if="!campeonatoSeleccionado"><router-link to="/campeonatos" class="text-white hover:text-gray-200 text-lg font-semibold">Campeonatos</router-link></li>
+        <li v-if="campeonatoSeleccionado"><router-link to="/inscripcion" class="text-white hover:text-gray-200 text-lg font-semibold">Inscripción</router-link></li>
+        <template v-if="campeonatoSeleccionado">
+          <li v-for="(files, dir) in componentDirectories" :key="dir" class="relative">
+            <div @mouseleave="closeDropdown" @mouseenter="cancelCloseDropdown">
+              <span 
+                @click="toggleDropdown(dir)"
+                class="text-white hover:text-gray-200 cursor-pointer text-lg font-semibold"
+              >
+                {{ dir }}
+              </span>
+              <ul 
+                v-show="openDropdown === dir"
+                class="absolute bg-white text-blue-500 mt-2 rounded shadow-lg"
+              >
+                <li v-for="file in files" :key="file" class="px-4 py-2 hover:bg-blue-100">
+                  <router-link :to="`/${dir}/${file}`" class="text-base font-medium">{{ file }}</router-link>
+                </li>
+              </ul>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </div>
   </nav>
 </template>
 

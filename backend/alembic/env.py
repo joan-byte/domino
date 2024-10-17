@@ -4,8 +4,8 @@ from sqlalchemy import pool
 from alembic import context
 from dotenv import load_dotenv
 import os
-from app.db.base_class import Base  # Asegúrese de que esta línea esté presente
-from app.models import Pareja, Jugador, Campeonato
+from app.db.base import Base
+from app.models import Pareja, Jugador, Campeonato, Mesa, Resultado
 
 # Cargar variables de entorno
 load_dotenv()
@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-target_metadata = Base.metadata  # Asegúrese de que esta línea esté presente
+target_metadata = Base.metadata
 
 # Construir la URL de la base de datos desde las variables de entorno
 DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"

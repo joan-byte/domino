@@ -12,3 +12,5 @@ class Campeonato(Base):
     numero_partidas = Column(Integer)
     grupo_b = Column(Boolean, default=False)
     parejas = relationship("Pareja", back_populates="campeonato")
+    jugadores = relationship("Jugador", back_populates="campeonato")
+    resultados = relationship("Resultado", back_populates="campeonato")

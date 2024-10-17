@@ -6,8 +6,11 @@ from app.routers import jugadores, campeonatos, partidas, resultados
 from typing import List
 from app.models.jugador import Pareja
 from app.schemas.jugador import ParejaSchema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, registry
 import logging
+
+mapper_registry = registry()
+mapper_registry.configure()
 
 app = FastAPI()
 

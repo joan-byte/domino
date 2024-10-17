@@ -20,8 +20,10 @@ class Jugador(Base):
     nombre = Column(String, nullable=False)
     apellido = Column(String, nullable=False)
     pareja_id = Column(Integer, ForeignKey("parejas.id"))
+    campeonato_id = Column(Integer, ForeignKey("campeonatos.id"), nullable=False)
 
     pareja = relationship("Pareja", back_populates="jugadores")
+    campeonato = relationship("Campeonato", back_populates="jugadores")
 
     __table_args__ = (
         UniqueConstraint('nombre', 'apellido', name='uq_jugador'),

@@ -4,6 +4,7 @@ from typing import Optional, List
 class JugadorBase(BaseModel):
     nombre: str
     apellido: str
+    campeonato_id: int
 
 class JugadorCreate(JugadorBase):
     pass
@@ -21,7 +22,7 @@ class JugadorSchema(JugadorInDBBase):
 class ParejaBase(BaseModel):
     nombre: str
     campeonato_id: int
-    club: Optional[str] = None  # Añadimos esta línea
+    club: Optional[str] = None
     activa: bool = True
 
 class ParejaCreate(BaseModel):

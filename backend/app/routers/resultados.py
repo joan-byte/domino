@@ -39,3 +39,4 @@ def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db
 
 
 # Añade más rutas según sea necesario
+

@@ -1,11 +1,12 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from app.db.base import Base
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, Boolean
+from app.db.base_class import Base
+from sqlalchemy.orm import relationship
 
 class Resultado(Base):
     __tablename__ = "resultados"
 
     id = Column(Integer, primary_key=True, index=True)
-    campeonato_id = Column(Integer, ForeignKey("campeonatos.id"))
+    campeonato_id = Column(Integer, ForeignKey("campeonatos.id"), nullable=False)
     P = Column(Integer)
     M = Column(Integer)
     id_pareja = Column(Integer, ForeignKey("parejas.id"))
@@ -13,6 +14,8 @@ class Resultado(Base):
     PG = Column(Integer)
     PP = Column(Integer)
     GB = Column(String)
+
+    campeonato = relationship("Campeonato", back_populates="resultados")
 
     def to_dict(self):
         return {
