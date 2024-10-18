@@ -2,17 +2,22 @@
   <div class="container mx-auto p-4 bg-gray-100 rounded-lg shadow-md">
     <h1 class="text-3xl font-bold mb-4">Partida {{ partidaActual }} - Mesa {{ mesaId }} - GB A</h1>
     
+    <div v-if="!isModificando" class="mb-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4" role="alert">
+      <p class="font-bold">Nuevo registro</p>
+      <p>No hay resultados previos para esta mesa y partida. Por favor, ingrese los nuevos resultados.</p>
+    </div>
+
     <div v-for="(pareja, index) in [pareja1, pareja2]" :key="index" class="mb-4 bg-white p-4 rounded-lg shadow">
       <div class="flex items-center justify-between">
         <h2 class="text-2xl font-semibold">Pareja {{ pareja.id_pareja }}</h2>
         <p class="text-2xl font-semibold">{{ pareja.nombre }}</p>
         <div class="flex items-center space-x-4">
-          <div>
+          <div v-if="pareja.RP > 0 || isModificando">
             <span class="font-bold">PG:</span>
             <input 
               v-model="pareja.PG"
-              :id="`pg-pareja-${pareja.id_pareja}`"
-              :name="`pg-pareja-${pareja.id_pareja}`"
+              :id="`pg-pareja-${index}`"
+              :name="`pg-pareja-${index}`"
               type="number"
               min="0"
               max="1"
@@ -20,12 +25,12 @@
               class="w-24 px-2 py-1 border rounded"
             >
           </div>
-          <div>
+          <div v-if="pareja.RP > 0 || isModificando">
             <span class="font-bold">PP:</span>
             <input 
               v-model="pareja.PP"
-              :id="`pp-pareja-${pareja.id_pareja}`"
-              :name="`pp-pareja-${pareja.id_pareja}`"
+              :id="`pp-pareja-${index}`"
+              :name="`pp-pareja-${index}`"
               type="number"
               readonly
               class="w-24 px-2 py-1 border rounded"
@@ -35,8 +40,8 @@
             <span class="font-bold">RP:</span>
             <input 
               v-model.number="pareja.RP"
-              :id="`rp-pareja-${pareja.id_pareja}`"
-              :name="`rp-pareja-${pareja.id_pareja}`"
+              :id="`rp-pareja-${index}`"
+              :name="`rp-pareja-${index}`"
               type="number"
               min="0"
               max="300"
@@ -96,11 +101,10 @@ export default {
     });
 
     const calcularResultados = () => {
-      if (pareja1.value.id_pareja === null || pareja2.value.id_pareja === null) {
-        const parejaPresenteRef = pareja1.value.id_pareja !== null ? pareja1 : pareja2;
-        parejaPresenteRef.value.RP = 150;
-        parejaPresenteRef.value.PG = 1;
-        parejaPresenteRef.value.PP = 150;
+      if (pareja2.value.id_pareja === null) {
+        pareja1.value.RP = 150;
+        pareja1.value.PG = 1;
+        pareja1.value.PP = 150;
       } else {
         if (pareja1.value.RP > pareja2.value.RP) {
           pareja1.value.PG = 1;
@@ -131,47 +135,44 @@ export default {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
             id_pareja: parseInt(pareja1.value.id_pareja),
-            RP: parseInt(pareja1.value.RP),
-            PG: parseInt(pareja1.value.PG),
-            PP: parseInt(pareja1.value.PP),
-            GB: "A"
+            GB: 'A',
+            PG: pareja1.value.PG,
+            PP: pareja1.value.PP,
+            RP: pareja1.value.RP
           }
         };
 
-        if (pareja2.value && pareja2.value.id_pareja !== null) {
+        if (pareja2.value.id_pareja !== null) {
           payload.pareja2 = {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
             id_pareja: parseInt(pareja2.value.id_pareja),
-            RP: parseInt(pareja2.value.RP),
-            PG: parseInt(pareja2.value.PG),
-            PP: parseInt(pareja2.value.PP),
-            GB: "A"
+            GB: 'A',
+            PG: pareja2.value.PG,
+            PP: pareja2.value.PP,
+            RP: pareja2.value.RP
           };
         }
 
         console.log('Payload enviado:', payload);
         let response;
         if (isModificando.value) {
-          response = await axios.put(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`, payload);
+          response = await axios.post(`http://localhost:8000/api/resultados/update/${mesaId.value}/${partidaActual.value}`, payload);
         } else {
           response = await axios.post('http://localhost:8000/api/resultados/create', payload);
         }
         console.log('Respuesta del servidor:', response.data);
-        alert(isModificando.value ? 'Resultados modificados con éxito' : 'Resultados guardados con éxito');
-        router.push('/resultados/registro_partida');
-      } catch (e) {
-        console.error('Error al guardar los resultados', e);
-        if (e.response) {
-          console.error('Datos de la respuesta de error:', e.response.data);
-          alert(`Error del servidor: ${e.response.status} - ${JSON.stringify(e.response.data)}`);
-        } else if (e.request) {
-          console.error('No se recibió respuesta del servidor');
-          alert('No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.');
+
+        if (response.data.message === "Resultados actualizados exitosamente" || response.data.message === "Resultados creados exitosamente") {
+          alert(response.data.message);
+          await actualizarRanking();
+          router.push('/resultados/registro_partida');
         } else {
-          console.error('Error al configurar la solicitud:', e.message);
-          alert(`Error al procesar la solicitud: ${e.message}`);
+          throw new Error('Respuesta inesperada del servidor');
         }
+      } catch (e) {
+        console.error('Error al guardar los resultados:', e);
+        alert('Error al guardar los resultados. Por favor, intente de nuevo.');
       }
     };
 
@@ -211,31 +212,52 @@ export default {
       try {
         const id1 = route.query.pareja1_id;
         const id2 = route.query.pareja2_id;
-        if (id1 && id1 !== 'null') {
-          const response = await axios.get(`http://localhost:8000/api/parejas/${id1}`);
-          pareja1.value.nombre = response.data.nombre;
-          pareja1.value.id_pareja = id1;
-        }
-        if (id2 && id2 !== 'null') {
-          const response = await axios.get(`http://localhost:8000/api/parejas/${id2}`);
-          pareja2.value.nombre = response.data.nombre;
-          pareja2.value.id_pareja = id2;
-        }
+        mesaId.value = route.params.id;
+        partidaActual.value = route.query.partida;
+        isModificando.value = route.query.modificar === 'true';
+        const tieneResultados = route.query.tieneResultados === 'true';
+
         if (!id1 || id1 === 'null') {
-          pareja1.value.nombre = 'Sin pareja';
-          pareja1.value.id_pareja = null;
-        }
-        if (!id2 || id2 === 'null') {
-          pareja2.value.nombre = 'Sin pareja';
-          pareja2.value.id_pareja = null;
+          throw new Error('ID de la primera pareja no proporcionado');
         }
 
-        if (isModificando.value) {
-          const resultadosResponse = await axios.get(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`);
-          const resultados = resultadosResponse.data;
-          pareja1.value = { ...pareja1.value, ...resultados.pareja1 };
-          if (resultados.pareja2) {
-            pareja2.value = { ...pareja2.value, ...resultados.pareja2 };
+        const [pareja1Response, pareja2Response] = await Promise.all([
+          axios.get(`http://localhost:8000/api/parejas/${id1}`),
+          id2 && id2 !== 'null' ? axios.get(`http://localhost:8000/api/parejas/${id2}`) : Promise.resolve(null)
+        ]);
+
+        pareja1.value = { ...pareja1Response.data, RP: 0, PG: 0, PP: 0, id_pareja: id1 };
+        
+        if (pareja2Response) {
+          pareja2.value = { ...pareja2Response.data, RP: 0, PG: 0, PP: 0, id_pareja: id2 };
+        } else {
+          pareja2.value = { nombre: 'Sin pareja', id_pareja: null, RP: 0, PG: 0, PP: 0 };
+        }
+
+        if (isModificando.value && tieneResultados) {
+          console.log(`Obteniendo resultados para mesa ${mesaId.value} y partida ${partidaActual.value}`);
+          try {
+            const resultadosResponse = await axios.get(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`);
+            const resultados = resultadosResponse.data;
+            console.log('Resultados obtenidos:', resultados);
+            
+            if (resultados.pareja1) {
+              pareja1.value = { ...pareja1.value, ...resultados.pareja1 };
+            }
+            if (resultados.pareja2) {
+              pareja2.value = { ...pareja2.value, ...resultados.pareja2 };
+            } else {
+              pareja2.value = { nombre: 'Sin pareja', id_pareja: null, RP: 0, PG: 0, PP: 0 };
+            }
+          } catch (error) {
+            console.error('Error al obtener resultados:', error);
+            if (error.response && error.response.status === 404) {
+              console.log('No se encontraron resultados para esta mesa y partida');
+              alert('No se encontraron resultados para modificar. Se iniciará un nuevo registro.');
+              isModificando.value = false;
+            } else {
+              throw error;
+            }
           }
         }
 
@@ -262,4 +284,69 @@ export default {
   }
 }
 </script>
+
+
+
+
+
+
+
+
+
+
+INSERT INTO resultados (
+    id,
+    P,
+    M,
+    id_pareja,
+    GB,
+    PG,
+    PP,
+    RP,
+    campeonato_id
+  )
+VALUES (
+         
+s,
+    P:integer,
+    M:integer,
+    id_pareja:integer,
+    'GB:character varying',
+    PG:integer,
+    PP:integer,
+    RP:integer,
+    campeonato_id:integer
+  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -99,43 +99,84 @@ export default {
 
     const registrarResultado = async (mesa) => {
       try {
+        // Validación de datos
+        if (!mesa.pareja1_id || !partidaActual.value) {
+          throw new Error('Datos incompletos para registrar el resultado');
+        }
+
         const resultado = {
+          campeonato_id: parseInt(localStorage.getItem('campeonato_id')),
           pareja1: {
             P: parseInt(partidaActual.value),
             M: mesa.id,
             id_pareja: mesa.pareja1_id,
             RP: 0, // Estos valores deberían ser ingresados por el usuario
-            GB: "A"
-          },
-          pareja2: {
+            GB: "A",
+            PG: 0,
+            PP: 0
+          }
+        };
+
+        if (mesa.pareja2_id) {
+          resultado.pareja2 = {
             P: parseInt(partidaActual.value),
             M: mesa.id,
             id_pareja: mesa.pareja2_id,
             RP: 0, // Estos valores deberían ser ingresados por el usuario
-            GB: "A"
-          }
-        };
-        await axios.post('http://localhost:8000/api/resultados', resultado);
-        mesa.resultado_registrado = true;
+            GB: "A",
+            PG: 0,
+            PP: 0
+          };
+        }
+
+        console.log('Enviando resultado:', resultado);
+        const response = await axios.post('http://localhost:8000/api/resultados/create', resultado);
+        console.log('Respuesta del servidor:', response.data);
+
+        if (response.status === 200 || response.status === 201) {
+          mesa.resultado_registrado = true;
+          alert('Resultado registrado con éxito');
+        } else {
+          throw new Error('Error al registrar el resultado');
+        }
       } catch (e) {
         console.error('Error al registrar el resultado', e);
-        alert('Error al registrar el resultado. Por favor, intente de nuevo.');
+        alert(`Error al registrar el resultado: ${e.message}. Por favor, intente de nuevo.`);
       }
     };
 
     const modificarResultado = async (mesa) => {
-      router.push({
-        name: 'RegistroResultados',
-        params: { 
-          id: mesa.id.toString()
-        },
-        query: {
-          partida: partidaActual.value.toString(),
-          pareja1_id: mesa.pareja1_id ? mesa.pareja1_id.toString() : 'null',
-          pareja2_id: mesa.pareja2_id ? mesa.pareja2_id.toString() : 'null',
-          modificar: 'true'
+      try {
+        console.log(`Verificando resultados para mesa ${mesa.id} y partida ${partidaActual.value}`);
+        const response = await axios.get(`http://localhost:8000/api/resultados/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`);
+        const tieneResultados = response.data.tiene_resultados;
+        console.log(`Tiene resultados: ${tieneResultados}`, response.data);
+        
+        if (!tieneResultados) {
+          alert('No hay resultados para modificar. Por favor, registre un nuevo resultado.');
+          return;
         }
-      });
+        
+        router.push({
+          name: 'RegistroResultados',
+          params: { 
+            id: mesa.id.toString()
+          },
+          query: {
+            partida: partidaActual.value.toString(),
+            pareja1_id: mesa.pareja1_id ? mesa.pareja1_id.toString() : 'null',
+            pareja2_id: mesa.pareja2_id ? mesa.pareja2_id.toString() : 'null',
+            modificar: 'true',
+            tieneResultados: 'true'
+          }
+        });
+      } catch (error) {
+        console.error('Error al verificar resultados:', error);
+        if (error.response) {
+          console.error('Respuesta del servidor:', error.response.data);
+        }
+        alert('Error al verificar resultados. Por favor, intente de nuevo.');
+      }
     };
 
     const irARegistroResultado = (mesa) => {
@@ -175,4 +216,3 @@ export default {
   }
 }
 </script>
-

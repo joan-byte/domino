@@ -74,36 +74,65 @@ def calculate_and_update_results(db: Session, mesa_id: int):
     db.commit()
 
 def mesa_tiene_resultados(db: Session, mesa_id: int, partida: int):
-    resultado = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).first()
-    return resultado is not None
+    resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+    return len(resultados) > 0
 
 def get_resultados(db: Session, mesa_id: int, partida: int):
+    print(f"Buscando resultados para mesa_id: {mesa_id}, partida: {partida}")
     resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+    print(f"Resultados encontrados: {resultados}")
+    
     if not resultados:
-        raise HTTPException(status_code=404, detail="Resultados no encontrados")
+        raise HTTPException(status_code=404, detail=f"No se encontraron resultados para la mesa {mesa_id} y partida {partida}")
     
     response = {}
-    for resultado in resultados:
-        key = f"pareja{1 if resultado.id_pareja == resultados[0].id_pareja else 2}"
-        response[key] = resultado
+    for i, resultado in enumerate(resultados, start=1):
+        response[f"pareja{i}"] = {
+            "id": resultado.id,
+            "P": resultado.P,
+            "M": resultado.M,
+            "id_pareja": resultado.id_pareja,
+            "GB": resultado.GB,
+            "PG": resultado.PG,
+            "PP": resultado.PP,
+            "RP": resultado.RP,
+            "campeonato_id": resultado.campeonato_id
+        }
     
+    # Si solo hay una pareja, asegurarse de que pareja2 esté presente pero vacía
+    if len(resultados) == 1:
+        response["pareja2"] = None
+    
+    print(f"Respuesta final: {response}")
     return response
 
 def update_resultados(db: Session, mesa_id: int, partida: int, resultado: ResultadoCreate):
-    existing_resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
-    if not existing_resultados:
+    # Buscar los resultados existentes
+    resultados_existentes = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+    
+    if not resultados_existentes:
         raise HTTPException(status_code=404, detail="Resultados no encontrados")
+
+    # Actualizar los resultados existentes
+    for resultado_existente in resultados_existentes:
+        if resultado_existente.id_pareja == resultado.pareja1.id_pareja:
+            update_data = resultado.pareja1.dict(exclude_unset=True)
+        elif resultado_existente.id_pareja == resultado.pareja2.id_pareja:
+            update_data = resultado.pareja2.dict(exclude_unset=True)
+        else:
+            continue
+
+        for key, value in update_data.items():
+            setattr(resultado_existente, key, value)
+
+    try:
+        db.commit()
+        db.refresh(resultado_existente)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar los resultados: {str(e)}")
     
-    for existing_resultado in existing_resultados:
-        if existing_resultado.id_pareja == resultado.pareja1.id_pareja:
-            for key, value in resultado.pareja1.dict().items():
-                setattr(existing_resultado, key, value)
-        elif resultado.pareja2 and existing_resultado.id_pareja == resultado.pareja2.id_pareja:
-            for key, value in resultado.pareja2.dict().items():
-                setattr(existing_resultado, key, value)
-    
-    db.commit()
-    return get_resultados(db, mesa_id, partida)
+    return {"message": "Resultados actualizados exitosamente"}
 
 def get_resultado_by_mesa_and_partida(db: Session, mesa_id: int, partida: int):
     return db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).first()

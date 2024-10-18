@@ -22,12 +22,13 @@ def check_mesa_tiene_resultados(mesa_id: int, partida: int, db: Session = Depend
     tiene_resultados = crud_resultado.mesa_tiene_resultados(db, mesa_id, partida)
     return {"tiene_resultados": tiene_resultados}
 
-@router.get("/resultados/{mesa_id}/{partida}", response_model=dict[str, Resultado])
+@router.get("/{mesa_id}/{partida}")
 def get_resultados(mesa_id: int, partida: int, db: Session = Depends(get_db)):
-    try:
-        return crud_resultado.get_resultados(db, mesa_id, partida)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return crud_resultado.get_resultados(db, mesa_id, partida)
+
+@router.post("/update/{mesa_id}/{partida}")
+def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db: Session = Depends(get_db)):
+    return crud_resultado.update_resultados(db, mesa_id, partida, resultado)
 
 @router.put("/resultados/{mesa_id}/{partida}", response_model=dict[str, Resultado])
 def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db: Session = Depends(get_db)):
@@ -38,5 +39,5 @@ def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db
 
 
 
-# Añade más rutas según sea necesario
+
 
