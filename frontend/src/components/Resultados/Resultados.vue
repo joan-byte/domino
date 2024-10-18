@@ -194,6 +194,19 @@ export default {
       router.push('/resultados/registro_partida');
     };
 
+    const actualizarRanking = async () => {
+      const campeonatoId = localStorage.getItem('campeonato_id');
+      if (!campeonatoId) {
+        console.error('No hay un campeonato seleccionado');
+        return;
+      }
+      try {
+        await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId}/actualizar-ranking`);
+      } catch (e) {
+        console.error('Error al actualizar el ranking', e);
+      }
+    };
+
     onMounted(async () => {
       try {
         const id1 = route.query.pareja1_id;
@@ -243,8 +256,10 @@ export default {
       guardarResultados,
       validarRP,
       isModificando,
-      cancelarModificacion
+      cancelarModificacion,
+      actualizarRanking
     };
   }
 }
 </script>
+

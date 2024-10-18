@@ -11,6 +11,7 @@ from sqlalchemy.sql import func
 from app.models import Resultado
 from sqlalchemy.orm import joinedload
 import logging
+from sqlalchemy import func, case
 
 router = APIRouter()
 
@@ -121,3 +122,60 @@ def actualizar_pareja(pareja_id: int, pareja: ParejaUpdate, db: Session = Depend
 def get_ultima_partida(campeonato_id: int, db: Session = Depends(get_db)):
     ultima_partida = db.query(func.max(Resultado.P)).filter(Resultado.campeonato_id == campeonato_id).scalar()
     return {"ultima_partida": ultima_partida or 0}
+
+@router.get("/{campeonato_id}/ranking")
+def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
+    subquery = (
+        db.query(
+            Resultado.id_pareja,
+            func.max(Resultado.P).label("ultima_partida"),
+            case(
+                (func.max(case((Resultado.GB == "B", 1), else_=0)) > 0, "B"),
+                else_="A"
+            ).label("GB"),
+            func.sum(Resultado.PG).label("PG_total"),
+            func.sum(Resultado.PP).label("PP_total")
+        )
+        .filter(Resultado.campeonato_id == campeonato_id)
+        .group_by(Resultado.id_pareja)
+        .subquery()
+    )
+
+    ranking = (
+        db.query(
+            subquery.c.ultima_partida,
+            subquery.c.GB,
+            subquery.c.PG_total,
+            subquery.c.PP_total,
+            Pareja.id.label("pareja_id"),
+            Pareja.nombre.label("nombre_pareja"),
+            Pareja.club
+        )
+        .outerjoin(subquery, Pareja.id == subquery.c.id_pareja)
+        .filter(Pareja.campeonato_id == campeonato_id, Pareja.activa == True)
+        .order_by(
+            subquery.c.GB.asc(),
+            subquery.c.PG_total.desc(),
+            subquery.c.PP_total.desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "partida": r.ultima_partida or 0,
+            "GB": r.GB or "A",
+            "PG": r.PG_total or 0,
+            "PP": r.PP_total or 0,
+            "pareja_id": r.pareja_id,
+            "nombre_pareja": r.nombre_pareja,
+            "club": r.club
+        }
+        for r in ranking
+    ]
+
+@router.post("/{campeonato_id}/actualizar-ranking")
+def actualizar_ranking(campeonato_id: int, db: Session = Depends(get_db)):
+    # Aquí iría la lógica para actualizar el ranking
+    # Por ahora, simplemente devolveremos un mensaje de éxito
+    return {"message": "Ranking actualizado correctamente"}
