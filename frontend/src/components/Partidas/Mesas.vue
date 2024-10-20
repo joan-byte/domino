@@ -52,7 +52,11 @@ export default {
 
     const fetchParejasYMesas = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/parejas-mesas');
+        const campeonatoId = localStorage.getItem('campeonato_id');
+        if (!campeonatoId) {
+          throw new Error('No hay un campeonato seleccionado');
+        }
+        const response = await axios.get(`http://localhost:8000/api/parejas-mesas/${campeonatoId}`);
         parejas.value = response.data;
       } catch (e) {
         console.error('Error al obtener las parejas y mesas', e);
@@ -75,3 +79,4 @@ export default {
   }
 }
 </script>
+

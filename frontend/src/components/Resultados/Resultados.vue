@@ -163,16 +163,17 @@ export default {
         }
         console.log('Respuesta del servidor:', response.data);
 
-        if (response.data.message === "Resultados actualizados exitosamente" || response.data.message === "Resultados creados exitosamente") {
-          alert(response.data.message);
+        if (response.data && (response.data.message || response.data.pareja1)) {
+          alert(response.data.message || 'Resultados guardados exitosamente');
           await actualizarRanking();
           router.push('/resultados/registro_partida');
         } else {
+          console.error('Respuesta inesperada del servidor:', response.data);
           throw new Error('Respuesta inesperada del servidor');
         }
       } catch (e) {
         console.error('Error al guardar los resultados:', e);
-        alert('Error al guardar los resultados. Por favor, intente de nuevo.');
+        alert(`Error al guardar los resultados: ${e.message}. Por favor, intente de nuevo.`);
       }
     };
 
@@ -317,6 +318,7 @@ s,
     RP:integer,
     campeonato_id:integer
   );
+
 
 
 

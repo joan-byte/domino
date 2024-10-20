@@ -51,3 +51,11 @@ class ParejaUpdate(BaseModel):
     club: Optional[str] = None
     activa: bool
     campeonato_id: int
+
+class ParejaConMesa(BaseModel):
+    id: int
+    nombre: str
+    mesa_asignada: Optional[int] = None
+
+    class Config:
+        from_attributes = True  # Cambiamos 'orm_mode' a 'from_attributes'

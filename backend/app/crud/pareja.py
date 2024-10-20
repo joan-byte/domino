@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from app.models.jugador import Pareja, Jugador
+from app.models.mesa import Mesa
 from app.schemas import jugador as jugador_schema
 from fastapi import HTTPException
 from typing import List
 from sqlalchemy.exc import IntegrityError
+from app.schemas.jugador import ParejaConMesa  # Importamos el esquema aquí
 
 def get_pareja(db: Session, pareja_id: int) -> Pareja:
     pareja = db.query(Pareja).filter(Pareja.id == pareja_id).first()
@@ -86,3 +88,18 @@ def activate_pareja(db: Session, pareja_id: int) -> Pareja:
 
 def get_parejas_activas(db: Session) -> List[Pareja]:
     return db.query(Pareja).filter(Pareja.activa == True).all()
+
+def get_parejas_con_mesas_por_campeonato(db: Session, campeonato_id: int) -> List[ParejaConMesa]:
+    parejas = db.query(Pareja).filter(Pareja.campeonato_id == campeonato_id).all()
+    mesas = db.query(Mesa).all()
+    
+    parejas_con_mesas = []
+    for pareja in parejas:
+        mesa_asignada = next((mesa for mesa in mesas if mesa.pareja1_id == pareja.id or mesa.pareja2_id == pareja.id), None)
+        parejas_con_mesas.append(ParejaConMesa(
+            id=pareja.id,
+            nombre=pareja.nombre,
+            mesa_asignada=mesa_asignada.id if mesa_asignada else None
+        ))
+    
+    return parejas_con_mesas

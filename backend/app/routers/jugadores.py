@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.models.jugador import Jugador, Pareja
-from app.schemas.jugador import ParejaCreate, ParejaSchema, JugadorSchema, ParejaUpdate  # Añadimos JugadorSchema aquí
+from app.schemas.jugador import ParejaCreate, ParejaSchema, JugadorSchema, ParejaUpdate, ParejaConMesa  # Añadimos JugadorSchema aquí
 from typing import List, Optional
 
 router = APIRouter()
@@ -121,5 +121,12 @@ def actualizar_estado_pareja(pareja_id: int, pareja_update: dict, db: Session = 
     db.commit()
     db.refresh(db_pareja)
     return db_pareja
+
+@router.get("/parejas-mesas/{campeonato_id}", response_model=List[ParejaConMesa])
+def obtener_parejas_mesas_por_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
+    try:
+        return crud_pareja.get_parejas_con_mesas_por_campeonato(db, campeonato_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener parejas y mesas: {str(e)}")
 
 # Añade más rutas según sea necesario
