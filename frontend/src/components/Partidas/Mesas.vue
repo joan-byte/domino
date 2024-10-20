@@ -46,7 +46,7 @@ export default {
         if (a.mesa_asignada === null && b.mesa_asignada !== null) return 1;
         if (a.mesa_asignada !== null && b.mesa_asignada === null) return -1;
         if (a.mesa_asignada === b.mesa_asignada) return a.id - b.id;
-        return a.id - b.id;
+        return (a.mesa_asignada || 0) - (b.mesa_asignada || 0);
       });
     });
 
@@ -60,7 +60,14 @@ export default {
         parejas.value = response.data;
       } catch (e) {
         console.error('Error al obtener las parejas y mesas', e);
-        error.value = 'Error al cargar las parejas y mesas. Por favor, intente de nuevo.';
+        if (e.response) {
+          console.error('Respuesta del servidor:', e.response.data);
+          error.value = `Error del servidor: ${e.response.status} - ${e.response.data.detail || 'Error desconocido'}`;
+        } else if (e.request) {
+          error.value = 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.';
+        } else {
+          error.value = `Error al cargar las parejas y mesas: ${e.message}`;
+        }
       } finally {
         isLoading.value = false;
       }
@@ -71,12 +78,12 @@ export default {
     });
 
     return {
-      parejasOrdenadas,
+      parejas,
       isLoading,
       error,
-      partidaActual
+      partidaActual,
+      parejasOrdenadas
     };
   }
 }
 </script>
-
