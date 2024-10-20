@@ -73,11 +73,21 @@ export default {
 
     const fetchParejas = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/parejas');
+        const campeonatoId = localStorage.getItem('campeonato_id');
+        if (!campeonatoId) {
+          console.error('No hay un campeonato seleccionado');
+          error.value = 'No hay un campeonato seleccionado. Por favor, seleccione un campeonato primero.';
+          return;
+        }
+        isLoading.value = true;
+        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/parejas`);
         parejas.value = response.data;
+        console.log('Parejas obtenidas:', parejas.value);
       } catch (e) {
         console.error('Error al obtener las parejas', e);
         error.value = 'Error al cargar las parejas. Por favor, intente de nuevo.';
+      } finally {
+        isLoading.value = false;
       }
     };
 
@@ -157,18 +167,9 @@ export default {
       }
     };
 
-    onMounted(async () => {
-      try {
-        await Promise.all([fetchParejas(), fetchCampeonatos()]);
-      } catch (e) {
-        console.error('Error al cargar los datos', e);
-      } finally {
-        isLoading.value = false;
-      }
-      const inscripcionEstado = localStorage.getItem('inscripcionAbierta');
-      if (inscripcionEstado !== null) {
-        inscripcionAbierta.value = inscripcionEstado === 'true';
-      }
+    onMounted(() => {
+      fetchParejas();
+      fetchCampeonatos();
     });
 
     return {
@@ -182,8 +183,10 @@ export default {
       mesas,
       sorteoRealizado,
       toggleSorteo,
-      inscripcionCerrada
+      inscripcionCerrada,
+      fetchCampeonatos  // Añade esta línea
     };
   }
 }
 </script>
+
