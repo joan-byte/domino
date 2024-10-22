@@ -85,21 +85,12 @@ export default {
           localStorage.setItem('campeonato_nombre', campeonatoData.nombre);
           localStorage.setItem('campeonato_partidas', campeonatoData.numero_partidas.toString());
 
-          try {
-            const resultadosResponse = await api.get(`/api/campeonatos/${campeonato.id}/ultima-partida`);
-            const partidaActual = resultadosResponse.data.ultima_partida;
-
-            if (partidaActual > 0) {
-              localStorage.setItem('partida_actual', partidaActual.toString());
-              localStorage.setItem('inscripcionAbierta', 'false');
-              localStorage.setItem('sorteoRealizado', 'true');
-            } else {
-              localStorage.removeItem('partida_actual');
-              localStorage.setItem('inscripcionAbierta', 'true');
-              localStorage.setItem('sorteoRealizado', 'false');
-            }
-          } catch (error) {
-            console.error('Error al obtener la última partida:', error);
+          // Usar el campo partida_actual del campeonato
+          if (campeonatoData.partida_actual > 0) {
+            localStorage.setItem('partida_actual', campeonatoData.partida_actual.toString());
+            localStorage.setItem('inscripcionAbierta', 'false');
+            localStorage.setItem('sorteoRealizado', 'true');
+          } else {
             localStorage.removeItem('partida_actual');
             localStorage.setItem('inscripcionAbierta', 'true');
             localStorage.setItem('sorteoRealizado', 'false');
@@ -152,3 +143,4 @@ export default {
   }
 }
 </script>
+
