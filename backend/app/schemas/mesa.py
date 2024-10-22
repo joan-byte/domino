@@ -32,3 +32,7 @@ class ParejaConMesa(BaseModel):
     class Config:
         from_attributes = True
 
+class MesaAsignacion(BaseModel):
+    mesa: int
+    pareja1_id: int
+    pareja2_id: Optional[int]

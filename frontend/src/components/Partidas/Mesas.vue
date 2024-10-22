@@ -11,17 +11,19 @@
     <table v-else class="min-w-full bg-white border border-gray-300">
       <thead>
         <tr class="bg-gray-100">
+          <th class="py-2 px-4 border-b text-center">Posición</th>
           <th class="py-2 px-4 border-b text-center">ID Pareja</th>
           <th class="py-2 px-4 border-b text-left">Nombre Pareja</th>
           <th class="py-2 px-4 border-b text-center">Mesa Asignada</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="pareja in parejasOrdenadas" :key="pareja.id" class="hover:bg-gray-50">
-          <td class="py-2 px-4 border-b text-center font-bold">{{ pareja.id }}</td>
-          <td class="py-2 px-4 border-b">{{ pareja.nombre }}</td>
-          <td class="py-2 px-4 border-b text-center font-bold" :class="pareja.mesa_asignada ? 'text-green-600' : 'text-red-600'">
-            {{ pareja.mesa_asignada || 'Sin asignar' }}
+        <tr v-for="(pareja, index) in parejasMesas" :key="pareja.pareja_id" class="hover:bg-gray-50">
+          <td class="py-2 px-4 border-b text-center">{{ index + 1 }}</td>
+          <td class="py-2 px-4 border-b text-center font-bold">{{ pareja.pareja_id }}</td>
+          <td class="py-2 px-4 border-b">{{ pareja.nombre_pareja }}</td>
+          <td class="py-2 px-4 border-b text-center font-bold text-green-600">
+            {{ pareja.mesa_asignada }}
           </td>
         </tr>
       </tbody>
@@ -30,60 +32,41 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 export default {
-  name: 'ParejasYMesasAsignadas',
+  name: 'MesasAsignadas',  // Cambiado de 'Mesas' a 'MesasAsignadas'
   setup() {
-    const parejas = ref([]);
+    const parejasMesas = ref([]);
     const isLoading = ref(true);
     const error = ref(null);
     const partidaActual = ref(localStorage.getItem('partida_actual') || '1');
+    const campeonatoId = ref(localStorage.getItem('campeonato_id'));
 
-    const parejasOrdenadas = computed(() => {
-      return [...parejas.value].sort((a, b) => {
-        if (a.mesa_asignada === null && b.mesa_asignada !== null) return 1;
-        if (a.mesa_asignada !== null && b.mesa_asignada === null) return -1;
-        if (a.mesa_asignada === b.mesa_asignada) return a.id - b.id;
-        return (a.mesa_asignada || 0) - (b.mesa_asignada || 0);
-      });
-    });
-
-    const fetchParejasYMesas = async () => {
+    const fetchParejasMesas = async () => {
       try {
-        const campeonatoId = localStorage.getItem('campeonato_id');
-        if (!campeonatoId) {
-          throw new Error('No hay un campeonato seleccionado');
-        }
-        const response = await axios.get(`http://localhost:8000/api/parejas-mesas/${campeonatoId}`);
-        parejas.value = response.data;
+        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/parejas-mesas`);
+        parejasMesas.value = response.data;
       } catch (e) {
-        console.error('Error al obtener las parejas y mesas', e);
-        if (e.response) {
-          console.error('Respuesta del servidor:', e.response.data);
-          error.value = `Error del servidor: ${e.response.status} - ${e.response.data.detail || 'Error desconocido'}`;
-        } else if (e.request) {
-          error.value = 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.';
-        } else {
-          error.value = `Error al cargar las parejas y mesas: ${e.message}`;
-        }
+        console.error('Error al obtener parejas y mesas', e);
+        error.value = 'Error al cargar parejas y mesas. Por favor, intente de nuevo.';
       } finally {
         isLoading.value = false;
       }
     };
 
     onMounted(() => {
-      fetchParejasYMesas();
+      fetchParejasMesas();
     });
 
     return {
-      parejas,
+      parejasMesas,
       isLoading,
       error,
-      partidaActual,
-      parejasOrdenadas
+      partidaActual
     };
   }
 }
 </script>
+

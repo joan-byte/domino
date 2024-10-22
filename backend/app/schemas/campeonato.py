@@ -14,6 +14,7 @@ class CampeonatoCreate(CampeonatoBase):
 
 class CampeonatoSchema(CampeonatoBase):
     id: int
+    partida_actual: int
 
     class Config:
         from_attributes = True
@@ -23,3 +24,4 @@ class CampeonatoUpdate(BaseModel):
     fecha_inicio: Optional[date] = None
     dias_duracion: Optional[int] = None
     numero_partidas: Optional[int] = None
+    partida_actual: Optional[int] = None

@@ -16,7 +16,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],
+    allow_origins=["http://localhost:8080"],  # Asegúrate de que esta sea la URL correcta de tu frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,5 +39,6 @@ async def log_requests(request, call_next):
     logging.info(f"Solicitud recibida: {request.method} {request.url}")
     response = await call_next(request)
     return response
+
 
 

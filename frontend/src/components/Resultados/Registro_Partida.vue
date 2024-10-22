@@ -2,8 +2,17 @@
   <div class="container mx-auto p-4">
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-2xl font-bold">Registro de Partidas</h1>
-      <div class="text-xl font-semibold">
-        Partida {{ partidaActual }}
+      <div class="flex items-center">
+        <button 
+          v-if="todasParejasRegistradas"
+          @click="finalizarPartida"
+          class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mr-4"
+        >
+          Finalizar Partida
+        </button>
+        <div class="text-xl font-semibold">
+          Partida {{ partidaActual }}
+        </div>
       </div>
     </div>
     <div v-if="isLoading">Cargando mesas y parejas...</div>
@@ -67,6 +76,11 @@ export default {
     const isLoading = ref(true);
     const error = ref(null);
     const partidaActual = ref(localStorage.getItem('partida_actual') || '1');
+    const campeonatoId = ref(localStorage.getItem('campeonato_id'));
+
+    const todasParejasRegistradas = computed(() => {
+      return mesas.value.every(mesa => mesa.resultado_registrado);
+    });
 
     const mesasOrdenadas = computed(() => {
       return [...mesas.value].sort((a, b) => a.id - b.id);
@@ -74,7 +88,7 @@ export default {
 
     const fetchMesas = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/mesas-registro');
+        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/mesas-partida-actual`);
         const mesasData = response.data;
         
         // Verificar si cada mesa tiene resultados
@@ -193,6 +207,54 @@ export default {
       });
     };
 
+    const finalizarPartida = async () => {
+      try {
+        // 1. Obtener el ranking actual
+        const rankingResponse = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`);
+        const ranking = rankingResponse.data;
+
+        // 2. Calcular las nuevas asignaciones de mesas
+        const nuevasAsignaciones = calcularNuevasAsignaciones(ranking);
+
+        // 3. Actualizar la partida actual en el backend
+        const nuevaPartida = parseInt(partidaActual.value) + 1;
+        await axios.put(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/partida_actual`, {
+          partida_actual: nuevaPartida
+        });
+
+        // 4. Actualizar las asignaciones de mesas en el backend
+        await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/asignar-mesas`, nuevasAsignaciones);
+
+        // 5. Actualizar el localStorage y el estado local
+        localStorage.setItem('partida_actual', nuevaPartida.toString());
+        partidaActual.value = nuevaPartida.toString();
+
+        // 6. Recargar los datos de las mesas
+        await fetchMesas();
+
+        alert('Partida finalizada. Se han asignado nuevas mesas para la siguiente partida.');
+      } catch (error) {
+        console.error('Error al finalizar la partida:', error);
+        if (error.response) {
+          console.error('Respuesta del servidor:', error.response.data);
+        }
+        alert('Error al finalizar la partida. Por favor, intente de nuevo.');
+      }
+    };
+
+    const calcularNuevasAsignaciones = (ranking) => {
+      const nuevasAsignaciones = [];
+      for (let i = 0; i < ranking.length; i += 2) {
+        const mesaNumero = Math.ceil((i + 1) / 2);
+        nuevasAsignaciones.push({
+          mesa: mesaNumero,
+          pareja1_id: ranking[i].pareja_id,
+          pareja2_id: ranking[i + 1] ? ranking[i + 1].pareja_id : null
+        });
+      }
+      return nuevasAsignaciones;
+    };
+
     watch(() => router.currentRoute.value, (newRoute) => {
       if (newRoute.name === 'RegistroPartida') {
         // Actualizar el estado de las mesas
@@ -205,10 +267,13 @@ export default {
     });
 
     return {
+      mesas,
       mesasOrdenadas,
       isLoading,
       error,
       partidaActual,
+      todasParejasRegistradas,
+      finalizarPartida,
       registrarResultado,
       modificarResultado,
       irARegistroResultado
@@ -216,3 +281,4 @@ export default {
   }
 }
 </script>
+

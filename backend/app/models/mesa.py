@@ -6,6 +6,9 @@ class Mesa(Base):
     __tablename__ = "mesas"
 
     id = Column(Integer, primary_key=True, index=True)
+    campeonato_id = Column(Integer, ForeignKey("campeonatos.id"))
+    partida = Column(Integer)
+    numero = Column(Integer)
     pareja1_id = Column(Integer, ForeignKey("parejas.id"))
     pareja2_id = Column(Integer, ForeignKey("parejas.id"))
     

@@ -11,6 +11,7 @@ class Campeonato(Base):
     dias_duracion = Column(Integer)
     numero_partidas = Column(Integer)
     grupo_b = Column(Boolean, default=False)
+    partida_actual = Column(Integer, default=0)  # Añadimos este campo
     parejas = relationship("Pareja", back_populates="campeonato")
     jugadores = relationship("Jugador", back_populates="campeonato")
     resultados = relationship("Resultado", back_populates="campeonato")
