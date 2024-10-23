@@ -60,6 +60,8 @@ def eliminar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
 @router.get("/{campeonato_id}/parejas", response_model=List[ParejaSchema])
 def obtener_parejas_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
     parejas = db.query(Pareja).options(joinedload(Pareja.jugadores)).filter(Pareja.campeonato_id == campeonato_id).all()
+    if not parejas:
+        raise HTTPException(status_code=404, detail="No se encontraron parejas para este campeonato")
     return parejas
 
 @router.post("/{campeonato_id}/parejas", response_model=ParejaSchema)
@@ -96,7 +98,7 @@ def actualizar_pareja(pareja_id: int, pareja: ParejaUpdate, db: Session = Depend
         
         # Actualizar los campos de la pareja
         db_pareja.activa = pareja.activa
-        db_pareja.club = pareja.club
+        db_pareja.club = pareja.club  # Asegúrate de que esta línea esté presente
         db_pareja.campeonato_id = pareja.campeonato_id
 
         # Actualizar los jugadores

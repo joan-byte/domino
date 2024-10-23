@@ -1,4 +1,5 @@
 <template>
+  
   <div class="container mx-auto p-4 flex flex-col items-center">
     <h1 class="text-2xl font-bold mb-4">Inscripción de Parejas</h1>
     <h2 class="text-xl mb-4">Campeonato: {{ campeonatoNombre }}</h2>
@@ -210,42 +211,53 @@ export default {
     const parejaSeleccionada = ref(null);
     const campeonatoNombre = ref(localStorage.getItem('campeonato_nombre') || 'No seleccionado');
     const isLoading = ref(false);
-    const error = ref(null);
-    const campeonatoId = ref(localStorage.getItem('campeonato_id'));
+    const error = ref('');
     const inscripcionAbierta = ref(true);
+    const editingParejaId = ref(null);
 
     const seleccionarPareja = (pareja) => {
-      if (!inscripcionAbierta.value) return;
+      if (!inscripcionAbierta.value || !pareja.nombre) return;
       parejaSeleccionada.value = pareja;
+      const [jugador1Completo, jugador2Completo] = pareja.nombre.split(' y ');
+      const jugador1 = jugador1Completo.split(' ');
+      const jugador2 = jugador2Completo.split(' ');
       formData.value = {
         jugador1: { 
-          nombre: pareja.nombre.split(' y ')[0].split(' ')[0], 
-          apellido: pareja.nombre.split(' y ')[0].split(' ').slice(1).join(' ')
+          nombre: jugador1[0] || '', 
+          apellido: jugador1.slice(1).join(' ')
         },
         jugador2: { 
-          nombre: pareja.nombre.split(' y ')[1].split(' ')[0], 
-          apellido: pareja.nombre.split(' y ')[1].split(' ').slice(1).join(' ')
+          nombre: jugador2[0] || '', 
+          apellido: jugador2.slice(1).join(' ')
         },
         club: pareja.club,
         activa: pareja.activa
       };
       isEditing.value = true;
+      editingParejaId.value = pareja.id;
     };
 
     const fetchParejas = async () => {
-      isLoading.value = true;
-      error.value = null;
       try {
-        console.log('campeonatoId.value:', campeonatoId.value);
-        if (!campeonatoId.value) {
-          throw new Error('ID del campeonato no definido');
+        const campeonatoId = localStorage.getItem('campeonato_id');
+        if (!campeonatoId) {
+          console.error('No hay un campeonato seleccionado');
+          error.value = 'No hay un campeonato seleccionado. Por favor, seleccione un campeonato primero.';
+          return;
         }
-        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/parejas`);
-        console.log('Parejas obtenidas:', response.data);
-        parejas.value = response.data;
+        isLoading.value = true;
+        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/parejas`);
+        parejas.value = response.data.sort((a, b) => b.id - a.id);
+        console.log('Parejas obtenidas:', parejas.value);
       } catch (e) {
         console.error('Error al obtener las parejas', e);
-        error.value = 'Error al cargar las parejas. Por favor, intente de nuevo.';
+        if (e.response) {
+          error.value = `Error del servidor: ${e.response.status} - ${e.response.data.detail || JSON.stringify(e.response.data)}`;
+        } else if (e.request) {
+          error.value = 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.';
+        } else {
+          error.value = `Error al cargar las parejas: ${e.message}`;
+        }
       } finally {
         isLoading.value = false;
       }
@@ -253,41 +265,50 @@ export default {
 
     const handleSubmit = async () => {
       try {
+        const campeonatoId = parseInt(localStorage.getItem('campeonato_id'));
+        if (!campeonatoId) {
+          throw new Error('ID del campeonato no encontrado');
+        }
+
         const payload = {
-          jugador1: formData.value.jugador1,
-          jugador2: formData.value.jugador2,
+          jugador1: {
+            ...formData.value.jugador1,
+            campeonato_id: campeonatoId
+          },
+          jugador2: {
+            ...formData.value.jugador2,
+            campeonato_id: campeonatoId
+          },
           club: formData.value.club,
           activa: formData.value.activa,
-          campeonato_id: parseInt(localStorage.getItem('campeonato_id'))
+          campeonato_id: campeonatoId
         };
 
+        console.log('Payload a enviar:', payload);
+
         if (isEditing.value) {
+          if (!parejaSeleccionada.value || !parejaSeleccionada.value.id) {
+            console.error('Error: Intentando editar una pareja sin ID');
+            alert('Error: No se puede editar la pareja. Por favor, seleccione una pareja válida.');
+            return;
+          }
+          console.log('Editando pareja con ID:', parejaSeleccionada.value.id);
           const response = await axios.put(`http://localhost:8000/api/parejas/${parejaSeleccionada.value.id}`, payload);
-          console.log('Respuesta del servidor:', response.data);
+          console.log('Respuesta del servidor (edición):', response.data);
           alert('Pareja actualizada con éxito');
         } else {
-          await axios.post('http://localhost:8000/api/parejas', payload);
+          const response = await axios.post('http://localhost:8000/api/parejas', payload);
+          console.log('Respuesta del servidor (creación):', response.data);
           alert('Pareja inscrita con éxito');
         }
+
         resetForm();
-        await fetchParejas();
+        await fetchParejas();  // Actualizar la lista de parejas
       } catch (error) {
-        console.error('Error al procesar la pareja', error);
+        console.error('Error al guardar la pareja:', error);
         if (error.response) {
           console.error('Datos de la respuesta de error:', error.response.data);
-          if (error.response.status === 422) {
-            const errorDetail = error.response.data.detail;
-            if (typeof errorDetail === 'string') {
-              alert(`Error: ${errorDetail}`);
-            } else if (Array.isArray(errorDetail)) {
-              const errorMessages = errorDetail.map(err => `${err.loc.join('.')} - ${err.msg}`).join('\n');
-              alert(`Errores de validación:\n${errorMessages}`);
-            } else {
-              alert(`Error de validación: ${JSON.stringify(errorDetail)}`);
-            }
-          } else {
-            alert(`Error del servidor: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
-          }
+          alert(`Error del servidor: ${error.response.status} - ${error.response.data.detail || JSON.stringify(error.response.data)}`);
         } else if (error.request) {
           alert('No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.');
         } else {
@@ -331,7 +352,7 @@ export default {
         activa: true
       };
       isEditing.value = false;
-      parejaSeleccionada.value = null;
+      editingParejaId.value = null;
     };
 
     const toggleActiva = async (pareja) => {
@@ -382,8 +403,60 @@ export default {
       isLoading,
       error,
       toggleActiva,
-      inscripcionAbierta
+      inscripcionAbierta,
+      editingParejaId
     };
   }
 }
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

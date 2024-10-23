@@ -6,30 +6,64 @@ from app.models.jugador import Jugador, Pareja
 from app.schemas.jugador import ParejaCreate, ParejaSchema, JugadorSchema, ParejaUpdate, ParejaConMesa
 from typing import List, Optional
 from app.crud import pareja as crud_pareja
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.post("/parejas/", response_model=ParejaSchema)
 def crear_pareja_con_jugadores(pareja: ParejaCreate, db: Session = Depends(get_db)):
-    # Crear el nombre de la pareja
-    nombre_pareja = f"{pareja.jugador1.nombre} {pareja.jugador1.apellido} y {pareja.jugador2.nombre} {pareja.jugador2.apellido}"
-    
-    # Crear la pareja
-    db_pareja = Pareja(nombre=nombre_pareja, club=pareja.club, campeonato_id=pareja.campeonato_id)
-    db.add(db_pareja)
-    db.flush()
+    try:
+        # Verificar si los jugadores ya existen en este campeonato
+        jugador1 = db.query(Jugador).filter_by(
+            nombre=pareja.jugador1.nombre,
+            apellido=pareja.jugador1.apellido,
+            campeonato_id=pareja.campeonato_id
+        ).first()
+        jugador2 = db.query(Jugador).filter_by(
+            nombre=pareja.jugador2.nombre,
+            apellido=pareja.jugador2.apellido,
+            campeonato_id=pareja.campeonato_id
+        ).first()
 
-    # Crear los jugadores asociados a la pareja
-    jugador1 = Jugador(**pareja.jugador1.dict(), pareja_id=db_pareja.id)
-    jugador2 = Jugador(**pareja.jugador2.dict(), pareja_id=db_pareja.id)
-    
-    db.add(jugador1)
-    db.add(jugador2)
+        if jugador1 and jugador1.pareja_id:
+            raise HTTPException(status_code=400, detail=f"El jugador {jugador1.nombre} {jugador1.apellido} ya está asignado a otra pareja en este campeonato")
+        if jugador2 and jugador2.pareja_id:
+            raise HTTPException(status_code=400, detail=f"El jugador {jugador2.nombre} {jugador2.apellido} ya está asignado a otra pareja en este campeonato")
 
-    db.commit()
-    db.refresh(db_pareja)
-    return db_pareja
+        # Crear la pareja
+        nueva_pareja = Pareja(club=pareja.club, activa=pareja.activa, campeonato_id=pareja.campeonato_id)
+        db.add(nueva_pareja)
+        db.flush()
+
+        # Crear o actualizar jugadores
+        if jugador1:
+            jugador1.pareja_id = nueva_pareja.id
+        else:
+            jugador1 = Jugador(**pareja.jugador1.dict(), pareja_id=nueva_pareja.id, campeonato_id=pareja.campeonato_id)
+            db.add(jugador1)
+
+        if jugador2:
+            jugador2.pareja_id = nueva_pareja.id
+        else:
+            jugador2 = Jugador(**pareja.jugador2.dict(), pareja_id=nueva_pareja.id, campeonato_id=pareja.campeonato_id)
+            db.add(jugador2)
+
+        # Generar el nombre de la pareja con nombre y apellido de ambos jugadores
+        nueva_pareja.nombre = f"{jugador1.nombre} {jugador1.apellido} y {jugador2.nombre} {jugador2.apellido}"
+
+        db.commit()
+        db.refresh(nueva_pareja)
+        return nueva_pareja
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error de integridad en la base de datos: {str(e)}")
+    except HTTPException as he:
+        db.rollback()
+        raise he
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
 
 @router.get("/parejas/", response_model=List[ParejaSchema])
 def obtener_parejas(db: Session = Depends(get_db)):
@@ -131,4 +165,16 @@ def obtener_parejas_mesas_por_campeonato(campeonato_id: int, db: Session = Depen
         logger.exception(f"Error al obtener parejas y mesas para el campeonato {campeonato_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
+@router.get("/campeonatos/{campeonato_id}/parejas", response_model=List[ParejaSchema])
+def obtener_parejas_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
+    parejas = db.query(Pareja).filter(Pareja.campeonato_id == campeonato_id).all()
+    if not parejas:
+        raise HTTPException(status_code=404, detail="No se encontraron parejas para este campeonato")
+    
+    # Asegúrate de que todas las parejas tengan un nombre válido
+    parejas_validas = [pareja for pareja in parejas if pareja.nombre is not None]
+    
+    return parejas_validas
+
 # Añade más rutas según sea necesario
+

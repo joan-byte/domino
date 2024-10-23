@@ -39,14 +39,15 @@ def update_pareja(db: Session, pareja_id: int, pareja_data: dict):
             jugador = getattr(pareja, f'jugador{i}')
             jugador_data = pareja_data[f'jugador{i}']
             
-            # Verificar si ya existe un jugador con el mismo nombre y apellido
+            # Verificar si ya existe un jugador con el mismo nombre y apellido en este campeonato
             existing_jugador = db.query(Jugador).filter(
                 Jugador.nombre == jugador_data['nombre'],
-                Jugador.apellido == jugador_data['apellido']
+                Jugador.apellido == jugador_data['apellido'],
+                Jugador.campeonato_id == pareja.campeonato_id
             ).first()
 
             if existing_jugador and existing_jugador.id != jugador.id:
-                raise ValueError(f"Ya existe un jugador con el nombre {jugador_data['nombre']} {jugador_data['apellido']}")
+                raise ValueError(f"Ya existe un jugador con el nombre {jugador_data['nombre']} {jugador_data['apellido']} en este campeonato")
 
             # Actualizar datos del jugador
             for key, value in jugador_data.items():

@@ -31,6 +31,7 @@
         <tr class="bg-gray-100">
           <th class="py-2 px-4 border-b text-left">ID</th>
           <th class="py-2 px-4 border-b text-left">Nombre</th>
+          <th class="py-2 px-4 border-b text-left">Club</th>
           <th class="py-2 px-4 border-b text-center">Activa</th>
         </tr>
       </thead>
@@ -38,6 +39,7 @@
         <tr v-for="pareja in parejas" :key="pareja.id" class="hover:bg-gray-50">
           <td class="py-2 px-4 border-b">{{ pareja.id }}</td>
           <td class="py-2 px-4 border-b">{{ pareja.nombre }}</td>
+          <td class="py-2 px-4 border-b">{{ pareja.club || '-' }}</td>
           <td class="py-2 px-4 border-b text-center">
             <input 
               type="checkbox" 
@@ -55,13 +57,14 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
 export default {
   name: 'InicioParejas',
-  setup() {const router = useRouter();
+  setup() {
+    const router = useRouter();
     const parejas = ref([]);
     const campeonatos = ref([]);
     const isLoading = ref(true);
@@ -167,9 +170,16 @@ export default {
       }
     };
 
+    // Añade esta función para actualizar los datos periódicamente
+    const startPeriodicUpdate = () => {
+      const updateInterval = setInterval(fetchParejas, 30000); // Actualiza cada 30 segundos
+      return () => clearInterval(updateInterval);
+    };
+
     onMounted(() => {
       fetchParejas();
-      fetchCampeonatos();
+      const stopPeriodicUpdate = startPeriodicUpdate();
+      onUnmounted(stopPeriodicUpdate);
     });
 
     return {
