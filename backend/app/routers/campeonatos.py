@@ -256,3 +256,4 @@ def obtener_mesas_partida_actual(campeonato_id: int, db: Session = Depends(get_d
         }
         for mesa in mesas
     ]
+

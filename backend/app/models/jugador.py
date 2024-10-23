@@ -4,12 +4,13 @@ from app.db.base_class import Base
 
 class Pareja(Base):
     __tablename__ = "parejas"
+
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String, nullable=False)
-    club = Column(String, nullable=True)  # Añadimos esta línea
+    nombre = Column(String, index=True)
     campeonato_id = Column(Integer, ForeignKey("campeonatos.id"))
+    club = Column(String, nullable=True)
     activa = Column(Boolean, default=True)
-    campeonato = relationship("Campeonato", back_populates="parejas")
+    
     campeonato = relationship("Campeonato", back_populates="parejas")
     jugadores = relationship("Jugador", back_populates="pareja")
 
