@@ -1,4 +1,5 @@
-<template>
+ 
+ <template>
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Ranking del Campeonato</h1>
     <div v-if="isLoading">Cargando ranking...</div>
@@ -32,44 +33,41 @@
   </div>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue';
+<script setup>
+import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
 import axios from 'axios';
 
-export default {
-  name: 'RankingCampeonato',
-  setup() {
-    const ranking = ref([]);
-    const isLoading = ref(true);
-    const error = ref(null);
+defineComponent({
+  name: 'RankingCampeonato'
+});
 
-    const fetchRanking = async () => {
-      const campeonatoId = localStorage.getItem('campeonato_id');
-      if (!campeonatoId) {
-        error.value = 'No hay un campeonato seleccionado';
-        isLoading.value = false;
-        return;
-      }
+const ranking = ref([]);
+const isLoading = ref(true);
+const error = ref(null);
 
-      try {
-        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/ranking`);
-        ranking.value = response.data;
-      } catch (e) {
-        console.error('Error al obtener el ranking', e);
-        error.value = 'Error al cargar el ranking. Por favor, intente de nuevo.';
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    onMounted(fetchRanking);
-
-    return {
-      ranking,
-      isLoading,
-      error
-    };
+const fetchRanking = async () => {
+  try {
+    const campeonatoId = localStorage.getItem('campeonato_id');
+    if (!campeonatoId) {
+      throw new Error('No hay un campeonato seleccionado');
+    }
+    const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/ranking`);
+    ranking.value = response.data;
+  } catch (e) {
+    console.error('Error al obtener el ranking:', e);
+    error.value = 'Error al cargar el ranking. Por favor, intente de nuevo.';
+  } finally {
+    isLoading.value = false;
   }
-}
+};
+
+onMounted(() => {
+  fetchRanking();
+  const intervalId = setInterval(fetchRanking, 5000); // Actualiza cada 5 segundos
+
+  onUnmounted(() => {
+    clearInterval(intervalId);
+  });
+});
 </script>
 
