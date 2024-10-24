@@ -1,5 +1,4 @@
- 
- <template>
+<template>
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Ranking del Campeonato</h1>
     <div v-if="isLoading">Cargando ranking...</div>
@@ -18,8 +17,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(pareja, index) in ranking" :key="pareja.pareja_id" class="hover:bg-gray-50">
-          <td class="py-2 px-4 border-b text-center">{{ index + 1 }}</td>
+        <tr v-for="(pareja, index) in parejasVisibles" :key="pareja.pareja_id" class="hover:bg-gray-50">
+          <td class="py-2 px-4 border-b text-center">{{ startIndex + index + 1 }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.partida }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.GB }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.PG }}</td>
@@ -30,44 +29,80 @@
         </tr>
       </tbody>
     </table>
+    <div class="mt-4 text-center">
+      Mostrando parejas {{ startIndex + 1 }} - {{ Math.min(startIndex + 20, ranking.length) }} de {{ ranking.length }}
+    </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, defineComponent } from 'vue';
+<script>
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import axios from 'axios';
 
-defineComponent({
-  name: 'RankingCampeonato'
-});
+export default {
+  name: 'RankingCampeonato',
+  setup() {
+    const ranking = ref([]);
+    const isLoading = ref(true);
+    const error = ref(null);
+    const startIndex = ref(0);
 
-const ranking = ref([]);
-const isLoading = ref(true);
-const error = ref(null);
+    const parejasVisibles = computed(() => {
+      return ranking.value.slice(startIndex.value, startIndex.value + 20);
+    });
 
-const fetchRanking = async () => {
-  try {
-    const campeonatoId = localStorage.getItem('campeonato_id');
-    if (!campeonatoId) {
-      throw new Error('No hay un campeonato seleccionado');
-    }
-    const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/ranking`);
-    ranking.value = response.data;
-  } catch (e) {
-    console.error('Error al obtener el ranking:', e);
-    error.value = 'Error al cargar el ranking. Por favor, intente de nuevo.';
-  } finally {
-    isLoading.value = false;
+    const fetchRanking = async () => {
+      try {
+        isLoading.value = true;
+        const campeonatoId = localStorage.getItem('campeonato_id');
+        if (!campeonatoId) {
+          throw new Error('No hay un campeonato seleccionado');
+        }
+        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/ranking`);
+        ranking.value = response.data;
+        error.value = null;
+      } catch (e) {
+        console.error('Error al obtener el ranking:', e);
+        error.value = 'Error al cargar el ranking. Por favor, intente de nuevo.';
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    const actualizarParejasMostradas = () => {
+      startIndex.value += 20;
+      if (startIndex.value >= ranking.value.length) {
+        startIndex.value = 0;
+      }
+      fetchRanking();
+    };
+
+    let intervalId;
+
+    onMounted(() => {
+      fetchRanking();
+      intervalId = setInterval(actualizarParejasMostradas, 10000); // Actualiza cada 10 segundos
+    });
+
+    onUnmounted(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    });
+
+    watch(ranking, (newRanking) => {
+      if (startIndex.value >= newRanking.length) {
+        startIndex.value = 0;
+      }
+    });
+
+    return {
+      ranking,
+      isLoading,
+      error,
+      startIndex,
+      parejasVisibles
+    };
   }
 };
-
-onMounted(() => {
-  fetchRanking();
-  const intervalId = setInterval(fetchRanking, 5000); // Actualiza cada 5 segundos
-
-  onUnmounted(() => {
-    clearInterval(intervalId);
-  });
-});
 </script>
-
