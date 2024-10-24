@@ -14,12 +14,13 @@ mapper_registry.configure()
 
 app = FastAPI()
 
+# Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # Ajusta esto según la URL de tu frontend
+    allow_origins=["http://localhost:8080"],  # Origen de tu aplicación Vue.js
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permite todos los métodos
+    allow_headers=["*"],  # Permite todos los headers
 )
 
 # Crear las tablas en la base de datos

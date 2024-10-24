@@ -88,6 +88,7 @@ export default {
 
     const fetchMesas = async () => {
       try {
+        isLoading.value = true;
         const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/mesas-partida-actual`);
         const mesasData = response.data;
         
@@ -103,6 +104,7 @@ export default {
         }
         
         mesas.value = mesasData;
+        console.log('Mesas actualizadas:', mesas.value);
       } catch (e) {
         console.error('Error al obtener las mesas', e);
         error.value = 'Error al cargar las mesas. Por favor, intente de nuevo.';
@@ -255,15 +257,20 @@ export default {
       return nuevasAsignaciones;
     };
 
-    watch(() => router.currentRoute.value, (newRoute) => {
-      if (newRoute.name === 'RegistroPartida') {
-        // Actualizar el estado de las mesas
-        fetchMesas();
-      }
-    });
-
     onMounted(() => {
       fetchMesas();
+    });
+
+    // Agregar un watcher para partidaActual
+    watch(partidaActual, () => {
+      fetchMesas();
+    });
+
+    // Agregar un watcher para la ruta
+    watch(() => router.currentRoute.value, (newRoute) => {
+      if (newRoute.name === 'RegistroPartida') {
+        fetchMesas();
+      }
     });
 
     return {
@@ -281,4 +288,3 @@ export default {
   }
 }
 </script>
-

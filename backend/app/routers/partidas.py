@@ -5,7 +5,9 @@ from app.db.session import get_db
 from app.crud import mesa as crud_mesa
 from app.crud import pareja as crud_pareja
 from app.schemas.mesa import MesaConParejas, Mesa
-# Importa los modelos y esquemas necesarios
+from app.models.campeonato import Campeonato
+from app.models.mesa import Mesa as MesaModel
+from app.models.jugador import Pareja
 
 router = APIRouter()
 
@@ -59,5 +61,28 @@ def obtener_parejas_mesas(db: Session = Depends(get_db)):
 def obtener_mesas_registro(db: Session = Depends(get_db)):
     return crud_mesa.obtener_mesas_para_registro(db)
 
-
-
+@router.get("/mesas-asignadas/{campeonato_id}")
+def obtener_mesas_asignadas(campeonato_id: int, db: Session = Depends(get_db)):
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
+        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+    
+    mesas = db.query(MesaModel).filter(
+        MesaModel.campeonato_id == campeonato_id,
+        MesaModel.partida == campeonato.partida_actual
+    ).all()
+    
+    parejas_info = []
+    for mesa in mesas:
+        for pareja_id in [mesa.pareja1_id, mesa.pareja2_id]:
+            if pareja_id:
+                pareja = db.query(Pareja).filter(Pareja.id == pareja_id).first()
+                if pareja:
+                    parejas_info.append({
+                        "id": pareja.id,
+                        "nombre": pareja.nombre,
+                        "club": pareja.club,
+                        "mesa": mesa.numero
+                    })
+    
+    return parejas_info
