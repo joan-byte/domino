@@ -6,17 +6,29 @@ from app.schemas.mesa import MesaConParejas, ParejaSimple
 import random
 from sqlalchemy import text
 
-def crear_mesas(db: Session, parejas_activas: List[Pareja]) -> List[Mesa]:
+def crear_mesas(db: Session, parejas_activas: List[Pareja], campeonato_id: int, partida: int) -> List[Mesa]:
     # Mezclar las parejas aleatoriamente
     random.shuffle(parejas_activas)
     
     mesas = []
     for i in range(0, len(parejas_activas), 2):
+        numero_mesa = (i // 2) + 1  # Asignar número de mesa empezando desde 1
         if i + 1 < len(parejas_activas):
-            mesa = Mesa(pareja1_id=parejas_activas[i].id, pareja2_id=parejas_activas[i+1].id)
+            mesa = Mesa(
+                pareja1_id=parejas_activas[i].id, 
+                pareja2_id=parejas_activas[i+1].id,
+                campeonato_id=campeonato_id,
+                partida=partida,
+                numero=numero_mesa
+            )
         else:
             # Si hay un número impar de parejas, la última mesa tendrá solo una pareja
-            mesa = Mesa(pareja1_id=parejas_activas[i].id)
+            mesa = Mesa(
+                pareja1_id=parejas_activas[i].id,
+                campeonato_id=campeonato_id,
+                partida=partida,
+                numero=numero_mesa
+            )
         db.add(mesa)
         mesas.append(mesa)
     

@@ -28,7 +28,7 @@
       </thead>
       <tbody>
         <tr v-for="mesa in mesasOrdenadas" :key="mesa.id" class="hover:bg-gray-50">
-          <td class="py-2 px-4 border-b text-center font-bold">{{ mesa.id }}</td>
+          <td class="py-2 px-4 border-b text-center font-bold">{{ mesa.numero }}</td>
           <td class="py-2 px-4 border-b text-center">{{ mesa.pareja1_id }}</td>
           <td class="py-2 px-4 border-b text-center">{{ mesa.pareja2_id || 'N/A' }}</td>
           <td class="py-2 px-4 border-b text-center">
@@ -83,7 +83,7 @@ export default {
     });
 
     const mesasOrdenadas = computed(() => {
-      return [...mesas.value].sort((a, b) => a.id - b.id);
+      return [...mesas.value].sort((a, b) => a.numero - b.numero);
     });
 
     const fetchMesas = async () => {

@@ -247,7 +247,7 @@ def obtener_mesas_partida_actual(campeonato_id: int, db: Session = Depends(get_d
     mesas = db.query(Mesa).filter(
         Mesa.campeonato_id == campeonato_id,
         Mesa.partida == campeonato.partida_actual
-    ).all()
+    ).order_by(Mesa.numero).all()
 
     return [
         {
@@ -258,4 +258,3 @@ def obtener_mesas_partida_actual(campeonato_id: int, db: Session = Depends(get_d
         }
         for mesa in mesas
     ]
-

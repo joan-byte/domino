@@ -31,7 +31,15 @@ def realizar_sorteo_inicial(db: Session = Depends(get_db)):
     # Eliminar mesas existentes antes de crear nuevas
     crud_mesa.eliminar_todas_mesas(db)
     
-    mesas = crud_mesa.crear_mesas(db, parejas_activas)
+    campeonato_id = parejas_activas[0].campeonato_id  # Asumimos que todas las parejas son del mismo campeonato
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
+        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+    
+    campeonato.partida_actual = 1
+    db.commit()
+    
+    mesas = crud_mesa.crear_mesas(db, parejas_activas, campeonato_id, campeonato.partida_actual)
     return mesas
 
 @router.get("/mesas", response_model=List[MesaConParejas])
