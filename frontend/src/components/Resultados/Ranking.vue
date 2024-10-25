@@ -17,8 +17,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(pareja, index) in ranking" :key="pareja.pareja_id" class="hover:bg-gray-50">
-          <td class="py-2 px-4 border-b text-center">{{ index + 1 }}</td>
+        <tr v-for="(pareja, index) in parejasVisibles" :key="pareja.pareja_id" class="hover:bg-gray-50">
+          <td class="py-2 px-4 border-b text-center">{{ startIndex + index + 1 }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.partida }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.GB }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.PG }}</td>
@@ -29,45 +29,82 @@
         </tr>
       </tbody>
     </table>
+    <div class="mt-4 text-center">
+      Mostrando parejas {{ startIndex + 1 }} - {{ Math.min(startIndex + 20, ranking.length) }} de {{ ranking.length }}
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import axios from 'axios';
 
 export default {
-  name: 'RankingView',
+  name: 'RankingCampeonato',
   setup() {
     const ranking = ref([]);
     const isLoading = ref(true);
     const error = ref(null);
+    const startIndex = ref(0);
+
+    const parejasVisibles = computed(() => {
+      return ranking.value.slice(startIndex.value, startIndex.value + 20);
+    });
 
     const fetchRanking = async () => {
       try {
+        isLoading.value = true;
         const campeonatoId = localStorage.getItem('campeonato_id');
         if (!campeonatoId) {
           throw new Error('No hay un campeonato seleccionado');
         }
         const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId}/ranking`);
         ranking.value = response.data;
-        isLoading.value = false;
+        error.value = null;
       } catch (e) {
-        console.error('Error al cargar el ranking:', e);
+        console.error('Error al obtener el ranking:', e);
         error.value = 'Error al cargar el ranking. Por favor, intente de nuevo.';
+      } finally {
         isLoading.value = false;
       }
     };
 
-    onMounted(fetchRanking);
+    const actualizarParejasMostradas = () => {
+      startIndex.value += 20;
+      if (startIndex.value >= ranking.value.length) {
+        startIndex.value = 0;
+      }
+      fetchRanking();
+    };
+
+    let intervalId;
+
+    onMounted(() => {
+      fetchRanking();
+      intervalId = setInterval(actualizarParejasMostradas, 10000); // Actualiza cada 10 segundos
+    });
+
+    onUnmounted(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    });
+
+    watch(ranking, (newRanking) => {
+      if (startIndex.value >= newRanking.length) {
+        startIndex.value = 0;
+      }
+    });
 
     return {
       ranking,
       isLoading,
-      error
+      error,
+      startIndex,
+      parejasVisibles
     };
   }
-}
+};
 </script>
 
 <style scoped>
