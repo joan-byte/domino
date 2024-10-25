@@ -44,8 +44,8 @@ export default {
     let closeTimeout = null;
 
     const componentDirectories = {
-      Partidas: ['Inicio', 'Ranking', 'Mesas'],
-      Resultados: ['CierrePartida', 'Resultados', 'Registro_Partida']
+      Partidas: ['Inicio', 'Mesas'],
+      Resultados: ['CierrePartida', 'Resultados', 'Registro_Partida', 'Ranking']
     };
 
     const toggleDropdown = (dir) => {
@@ -78,4 +78,3 @@ export default {
   }
 }
 </script>
-
