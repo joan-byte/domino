@@ -75,7 +75,7 @@ const api = axios.create({
 
 export default {
   name: 'CampeonatosView',
-  setup() {
+  setup(props, { emit }) {
     const formData = ref({
       nombre: '',
       fecha_inicio: '',
@@ -173,6 +173,26 @@ export default {
       router.push('/');
     };
 
+    const seleccionarCampeonato = async (id) => {
+      try {
+        const response = await api.get(`/api/campeonatos/${id}`);
+        const campeonatoData = response.data;
+        
+        // Guardar los datos del campeonato en localStorage
+        localStorage.setItem('campeonato_id', campeonatoData.id);
+        localStorage.setItem('campeonato_nombre', campeonatoData.nombre);
+        
+        // Emitir el evento cuando se selecciona un campeonato
+        emit('campeonato-seleccionado', true);
+        
+        // Redirigir a la página de inicio o a donde sea apropiado
+        router.push('/');
+      } catch (error) {
+        console.error('Error al seleccionar el campeonato', error);
+        alert('Error al seleccionar el campeonato. Por favor, intente de nuevo.');
+      }
+    };
+
     onMounted(() => {
       const id = route.params.id;
       if (id) {
@@ -208,6 +228,7 @@ export default {
       handleSubmit,
       handleDelete,
       handleCancel,
+      seleccionarCampeonato
     };
   },
 };

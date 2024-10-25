@@ -1,13 +1,10 @@
 <template>
   <div id="app">
     <NavBar 
-      @toggle-seleccion-campeonato="toggleSeleccionCampeonato"
       :campeonato-seleccionado="campeonatoSeleccionado"
     />
     <router-view 
-      :seleccionando-campeonato="seleccionandoCampeonato" 
       @campeonato-seleccionado="handleCampeonatoSeleccionado"
-      :key="$route.fullPath"
     ></router-view>
   </div>
 </template>
@@ -22,22 +19,10 @@ export default {
     NavBar
   },
   setup() {
-    const seleccionandoCampeonato = ref(false);
     const campeonatoSeleccionado = ref(!!localStorage.getItem('campeonato_id'));
 
-    const toggleSeleccionCampeonato = (value) => {
-      seleccionandoCampeonato.value = value;
-      if (!value) {
-        campeonatoSeleccionado.value = false;
-        localStorage.removeItem('campeonato_id');
-        localStorage.removeItem('campeonato_nombre');
-        localStorage.removeItem('campeonato_partidas');
-      }
-    };
-
-    const handleCampeonatoSeleccionado = () => {
-      seleccionandoCampeonato.value = false;
-      campeonatoSeleccionado.value = true;
+    const handleCampeonatoSeleccionado = (seleccionado) => {
+      campeonatoSeleccionado.value = seleccionado;
     };
 
     watch(() => localStorage.getItem('campeonato_id'), (newValue) => {
@@ -45,9 +30,7 @@ export default {
     });
 
     return {
-      seleccionandoCampeonato,
       campeonatoSeleccionado,
-      toggleSeleccionCampeonato,
       handleCampeonatoSeleccionado
     };
   }

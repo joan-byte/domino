@@ -5,9 +5,13 @@
         <router-link to="/" class="text-white hover:text-gray-200 text-xl font-bold">Home</router-link>
       </div>
       <ul class="flex space-x-6 items-center mr-4">
-        <li v-if="!campeonatoSeleccionado"><router-link to="/campeonatos" class="text-white hover:text-gray-200 text-lg font-semibold">Campeonatos</router-link></li>
-        <li v-if="campeonatoSeleccionado"><router-link to="/inscripcion" class="text-white hover:text-gray-200 text-lg font-semibold">Inscripción</router-link></li>
-        <template v-if="campeonatoSeleccionado">
+        <li v-if="!campeonatoSeleccionado">
+          <router-link to="/campeonatos" class="text-white hover:text-gray-200 text-lg font-semibold">Campeonatos</router-link>
+        </li>
+        <template v-else>
+          <li>
+            <router-link to="/inscripcion" class="text-white hover:text-gray-200 text-lg font-semibold">Inscripción</router-link>
+          </li>
           <li v-for="(files, dir) in componentDirectories" :key="dir" class="relative">
             <div @mouseleave="closeDropdown" @mouseenter="cancelCloseDropdown">
               <span 
@@ -38,22 +42,16 @@ import { ref } from 'vue';
 export default {
   name: 'NavBar',
   props: ['campeonatoSeleccionado'],
-  emits: ['toggle-seleccion-campeonato'],
   setup() {
     const openDropdown = ref(null);
     let closeTimeout = null;
 
     const componentDirectories = {
       Partidas: ['Inicio', 'Mesas'],
-      Resultados: ['CierrePartida', 'Resultados', 'Registro_Partida', 'Ranking']
+      Resultados: ['CierrePartida', 'Registro_Partida', 'Ranking']
     };
 
-    const visibleFiles = (dir, files) => {
-      if (dir === 'Resultados') {
-        return files.filter(file => file !== 'Resultados');
-      }
-      return files;
-    };
+    const visibleFiles = (dir, files) => files;
 
     const toggleDropdown = (dir) => {
       if (openDropdown.value === dir) {
