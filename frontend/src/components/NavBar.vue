@@ -20,7 +20,7 @@
                 v-show="openDropdown === dir"
                 class="absolute bg-white text-blue-500 mt-2 rounded shadow-lg"
               >
-                <li v-for="file in files" :key="file" class="px-4 py-2 hover:bg-blue-100">
+                <li v-for="file in visibleFiles(dir, files)" :key="file" class="px-4 py-2 hover:bg-blue-100">
                   <router-link :to="`/${dir}/${file}`" class="text-base font-medium">{{ file }}</router-link>
                 </li>
               </ul>
@@ -48,6 +48,13 @@ export default {
       Resultados: ['CierrePartida', 'Resultados', 'Registro_Partida', 'Ranking']
     };
 
+    const visibleFiles = (dir, files) => {
+      if (dir === 'Resultados') {
+        return files.filter(file => file !== 'Resultados');
+      }
+      return files;
+    };
+
     const toggleDropdown = (dir) => {
       if (openDropdown.value === dir) {
         openDropdown.value = null;
@@ -73,7 +80,8 @@ export default {
       openDropdown,
       toggleDropdown,
       closeDropdown,
-      cancelCloseDropdown
+      cancelCloseDropdown,
+      visibleFiles
     };
   }
 }
