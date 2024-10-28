@@ -4,10 +4,10 @@ import Campeonatos from '@/views/Campeonatos.vue';
 import Inscripcion from '@/components/Inscripcion.vue';
 import Inicio from '@/components/Partidas/Inicio.vue';
 import Mesas from '@/components/Partidas/Mesas.vue';
-import CierrePartida from '@/components/Resultados/CierrePartida.vue';
 import RegistroPartida from '@/components/Resultados/Registro_Partida.vue';
 import RegistroResultados from '@/components/Resultados/Resultados.vue';
 import RankingView from '@/components/Resultados/Ranking.vue';
+import PodiumView from '@/components/Resultados/Podium.vue';
 
 const routes = [
   {
@@ -36,11 +36,6 @@ const routes = [
     component: Mesas
   },
   {
-    path: '/Resultados/CierrePartida',
-    name: 'CierrePartida',
-    component: CierrePartida
-  },
-  {
     path: '/resultados/:id',
     name: 'RegistroResultados',
     component: RegistroResultados
@@ -54,6 +49,11 @@ const routes = [
     path: '/Resultados/Ranking',
     name: 'Ranking',
     component: RankingView
+  },
+  {
+    path: '/Resultados/Podium',
+    name: 'Podium',
+    component: PodiumView
   }
 ];
 

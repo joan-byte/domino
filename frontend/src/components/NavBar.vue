@@ -48,7 +48,7 @@ export default {
 
     const componentDirectories = {
       Partidas: ['Inicio', 'Mesas'],
-      Resultados: ['CierrePartida', 'Registro_Partida', 'Ranking']
+      Resultados: ['Podium', 'Registro_Partida', 'Ranking']
     };
 
     const visibleFiles = (dir, files) => files;
@@ -84,3 +84,4 @@ export default {
   }
 }
 </script>
+

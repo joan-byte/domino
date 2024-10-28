@@ -1,11 +1,12 @@
 <template>
   <div>
-    <!-- Contenido del componente CierrePartida -->
+    <!-- Contenido del componente PodiumView -->
   </div>
 </template>
 
 <script>
 export default {
-  name: 'CierrePartida'
+  name: 'PodiumView'
 }
 </script>
+
