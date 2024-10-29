@@ -11,6 +11,7 @@
         <p class="text-sm text-gray-600 mb-1">Fecha de inicio: {{ formatDate(campeonato.fecha_inicio) }}</p>
         <p class="text-sm text-gray-600 mb-1">Duración: {{ campeonato.dias_duracion }} días</p>
         <p class="text-sm text-gray-600">Número de partidas: {{ campeonato.numero_partidas }}</p>
+        <p class="text-sm text-gray-600">Grupo: {{ campeonato.grupo_b ? 'B' : 'A' }}</p>
         <div class="mt-4 flex justify-between">
           <button @click="modificarCampeonato(campeonato)" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
             Modificar
@@ -84,6 +85,7 @@ export default {
           localStorage.setItem('campeonato_id', campeonatoData.id.toString());
           localStorage.setItem('campeonato_nombre', campeonatoData.nombre);
           localStorage.setItem('campeonato_partidas', campeonatoData.numero_partidas.toString());
+          localStorage.setItem('campeonato_grupo', campeonatoData.grupo_b ? 'B' : 'A');
 
           // Usar el campo partida_actual del campeonato
           if (campeonatoData.partida_actual > 0) {

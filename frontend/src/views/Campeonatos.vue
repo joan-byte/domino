@@ -44,6 +44,17 @@
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             />
           </div>
+          <div class="flex items-center">
+            <input
+              type="checkbox"
+              id="grupo_b"
+              v-model="formData.grupo_b"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label for="grupo_b" class="ml-2 block text-sm text-gray-900">
+              Grupo {{ formData.grupo_b ? 'B' : 'A' }}
+            </label>
+          </div>
           <div class="flex space-x-2 justify-end">
             <button v-if="isEditing" type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
               Modificar
@@ -81,6 +92,7 @@ export default {
       fecha_inicio: '',
       dias_duracion: '',
       numero_partidas: '',
+      grupo_b: false,
     });
     const isEditing = ref(false);
     const route = useRoute();
@@ -97,6 +109,7 @@ export default {
           fecha_inicio: response.data.fecha_inicio.split('T')[0],
           dias_duracion: response.data.dias_duracion,
           numero_partidas: response.data.numero_partidas,
+          grupo_b: response.data.grupo_b,
         };
         isEditing.value = true;
       } catch (error) {
@@ -122,18 +135,31 @@ export default {
     };
 
     const handleSubmit = async () => {
+      // Definir campeonatoData fuera del try-catch
+      const campeonatoData = {
+        ...formData.value,
+        grupo_b: Boolean(formData.value.grupo_b),
+        dias_duracion: parseInt(formData.value.dias_duracion),
+        numero_partidas: parseInt(formData.value.numero_partidas)
+      };
+
       try {
+        let response;
         if (isEditing.value) {
-          await api.put(`/api/campeonatos/${route.params.id}`, formData.value);
+          response = await api.put(`/api/campeonatos/${route.params.id}`, campeonatoData);
+          console.log('Respuesta de actualización:', response.data);
           alert('Campeonato actualizado con éxito');
         } else {
-          await api.post('/api/campeonatos/', formData.value);
+          response = await api.post('/api/campeonatos/', campeonatoData);
+          console.log('Respuesta de creación:', response.data);
           alert('Campeonato creado con éxito');
         }
         router.push('/');
       } catch (error) {
         console.error('Error al guardar el campeonato', error);
         if (error.response) {
+          console.log('Datos enviados:', campeonatoData);
+          console.log('Error response:', error.response.data);
           alert(`Error del servidor: ${error.response.status} - ${error.response.data.detail || 'Error desconocido'}`);
         } else if (error.request) {
           alert('No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.');
@@ -168,6 +194,7 @@ export default {
         fecha_inicio: '',
         dias_duracion: '',
         numero_partidas: '',
+        grupo_b: false,
       };
       isEditing.value = false;
       router.push('/');
@@ -204,6 +231,7 @@ export default {
           fecha_inicio: '',
           dias_duracion: '',
           numero_partidas: '',
+          grupo_b: false,
         };
       }
     });
@@ -218,6 +246,7 @@ export default {
           fecha_inicio: '',
           dias_duracion: '',
           numero_partidas: '',
+          grupo_b: false,
         };
       }
     });

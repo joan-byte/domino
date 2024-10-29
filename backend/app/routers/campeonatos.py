@@ -38,15 +38,26 @@ def obtener_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
     return campeonato
 
 @router.put("/{campeonato_id}", response_model=CampeonatoSchema)
-def actualizar_campeonato(campeonato_id: int, campeonato: CampeonatoUpdate, db: Session = Depends(get_db)):
-    db_campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
-    if db_campeonato is None:
+def update_campeonato(
+    campeonato_id: int,
+    campeonato_in: CampeonatoUpdate,
+    db: Session = Depends(get_db)
+):
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
         raise HTTPException(status_code=404, detail="Campeonato no encontrado")
-    for key, value in campeonato.dict(exclude_unset=True).items():
-        setattr(db_campeonato, key, value)
-    db.commit()
-    db.refresh(db_campeonato)
-    return db_campeonato
+    
+    for field, value in campeonato_in.dict(exclude_unset=True).items():
+        setattr(campeonato, field, value)
+    
+    try:
+        db.commit()
+        db.refresh(campeonato)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    return campeonato
 
 @router.delete("/{campeonato_id}")
 def eliminar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):

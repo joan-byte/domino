@@ -48,7 +48,7 @@ export default {
 
     const componentDirectories = {
       Partidas: ['Inicio', 'Mesas'],
-      Resultados: ['Podium', 'Registro_Partida', 'Ranking']
+      Resultados: ['Podium', 'Ranking', 'Registro_Partida']
     };
 
     const visibleFiles = (dir, files) => files;

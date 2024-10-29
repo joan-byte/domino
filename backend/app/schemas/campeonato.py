@@ -24,4 +24,5 @@ class CampeonatoUpdate(BaseModel):
     fecha_inicio: Optional[date] = None
     dias_duracion: Optional[int] = None
     numero_partidas: Optional[int] = None
+    grupo_b: Optional[bool] = None
     partida_actual: Optional[int] = None
