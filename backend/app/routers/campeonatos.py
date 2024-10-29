@@ -14,6 +14,7 @@ import logging
 from sqlalchemy import func, case
 from app.models.mesa import Mesa
 from app.schemas.mesa import MesaAsignacion
+from app.models.ranking_final import RankingFinal
 
 router = APIRouter()
 
@@ -273,3 +274,53 @@ def obtener_mesas_partida_actual(campeonato_id: int, db: Session = Depends(get_d
         }
         for mesa in mesas
     ]
+
+@router.get("/{campeonato_id}/ranking-final")
+def get_ranking_final(campeonato_id: int, db: Session = Depends(get_db)):
+    # Primero verificamos si el campeonato está cerrado
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
+        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+    
+    # Verificar si existe un ranking final guardado
+    ranking_final = db.query(RankingFinal).filter(
+        RankingFinal.campeonato_id == campeonato_id
+    ).order_by(RankingFinal.posicion).all()
+    
+    if ranking_final:
+        return [
+            {
+                "pareja_id": r.pareja_id,
+                "nombre_pareja": r.nombre_pareja,
+                "PG": r.puntos_ganados,
+                "PP": r.puntos_perdidos,
+                "posicion": r.posicion
+            }
+            for r in ranking_final
+        ]
+    
+    return []
+
+@router.post("/{campeonato_id}/cerrar-campeonato")
+def cerrar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
+    # Obtener el ranking actual
+    ranking = get_ranking(campeonato_id, db)
+    
+    # Guardar el ranking final
+    for posicion, pareja in enumerate(ranking, 1):
+        ranking_final = RankingFinal(
+            campeonato_id=campeonato_id,
+            pareja_id=pareja["pareja_id"],
+            nombre_pareja=pareja["nombre_pareja"],
+            puntos_ganados=pareja["PG"],
+            puntos_perdidos=pareja["PP"],
+            posicion=posicion
+        )
+        db.add(ranking_final)
+    
+    # Marcar el campeonato como cerrado
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    campeonato.estado = "CERRADO"
+    
+    db.commit()
+    return {"message": "Campeonato cerrado exitosamente"}

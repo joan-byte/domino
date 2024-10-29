@@ -70,7 +70,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 
@@ -99,11 +99,35 @@ export default {
     const fetchRanking = async () => {
       try {
         isLoading.value = true;
-        const response = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`);
-        ranking.value = response.data;
+        // Primero intentamos obtener el ranking final
+        const responseFinal = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking-final`);
+        
+        if (responseFinal.data && responseFinal.data.length > 0) {
+          console.log('Ranking final encontrado:', responseFinal.data);
+          ranking.value = responseFinal.data;
+          mostrarPodium.value = true;
+        } else if (route.query.mostrar === 'true') {
+          // Si no hay ranking final pero venimos del cierre de campeonato,
+          // obtenemos el ranking actual y cerramos el campeonato
+          console.log('Cerrando campeonato...');
+          const currentRanking = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`);
+          
+          // Guardar el ranking actual
+          ranking.value = currentRanking.data;
+          mostrarPodium.value = true;
+
+          // Cerrar el campeonato
+          await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/cerrar-campeonato`);
+          console.log('Campeonato cerrado exitosamente');
+        } else {
+          console.log('No hay ranking final y no es cierre de campeonato');
+          ranking.value = [];
+          mostrarPodium.value = false;
+        }
       } catch (e) {
-        console.error('Error al obtener el ranking', e);
+        console.error('Error al obtener el ranking:', e);
         error.value = 'Error al cargar el ranking';
+        mostrarPodium.value = false;
       } finally {
         isLoading.value = false;
       }
@@ -118,11 +142,19 @@ export default {
 
     let intervalId;
 
-    onMounted(() => {
-      // Solo mostrar y cargar datos si viene desde el botón de cierre
-      mostrarPodium.value = route.query.mostrar === 'true';
-      if (mostrarPodium.value) {
+    // Observar cambios en la query del route
+    watch(() => route.query.mostrar, (newValue) => {
+      if (newValue === 'true') {
+        console.log('Query mostrar cambió a true, actualizando ranking...');
         fetchRanking();
+      }
+    });
+
+    onMounted(async () => {
+      console.log('Componente montado, obteniendo ranking inicial...');
+      await fetchRanking();
+      
+      if (mostrarPodium.value) {
         intervalId = setInterval(actualizarParejasMostradas, 10000);
       }
     });
