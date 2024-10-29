@@ -8,7 +8,9 @@
       <div class="flex flex-col items-center">
         <div class="bg-gray-200 p-4 rounded-t-lg w-80">
           <p class="text-center font-bold">2° Lugar</p>
-          <p class="text-center text-gray-400">{{ mostrarPodium ? (podium[1]?.nombre_pareja || 'N/A') : 'Pendiente' }}</p>
+          <p class="text-center text-xl font-semibold" :class="mostrarPodium ? 'text-gray-800' : 'text-gray-400'">
+            {{ mostrarPodium ? (podium[1]?.nombre_pareja || 'N/A') : 'Pendiente' }}
+          </p>
         </div>
         <div class="bg-silver h-16 w-80"></div>
       </div>
@@ -17,7 +19,9 @@
       <div class="flex flex-col items-center">
         <div class="bg-gray-200 p-4 rounded-t-lg w-80">
           <p class="text-center font-bold">🏆 Campeón</p>
-          <p class="text-center text-gray-400">{{ mostrarPodium ? (podium[0]?.nombre_pareja || 'N/A') : 'Pendiente' }}</p>
+          <p class="text-center text-2xl font-bold" :class="mostrarPodium ? 'text-gray-900' : 'text-gray-400'">
+            {{ mostrarPodium ? (podium[0]?.nombre_pareja || 'N/A') : 'Pendiente' }}
+          </p>
         </div>
         <div class="bg-gold h-24 w-80"></div>
       </div>
@@ -26,7 +30,9 @@
       <div class="flex flex-col items-center">
         <div class="bg-gray-200 p-4 rounded-t-lg w-80">
           <p class="text-center font-bold">3° Lugar</p>
-          <p class="text-center text-gray-400">{{ mostrarPodium ? (podium[2]?.nombre_pareja || 'N/A') : 'Pendiente' }}</p>
+          <p class="text-center text-lg font-medium" :class="mostrarPodium ? 'text-gray-700' : 'text-gray-400'">
+            {{ mostrarPodium ? (podium[2]?.nombre_pareja || 'N/A') : 'Pendiente' }}
+          </p>
         </div>
         <div class="bg-bronze h-12 w-80"></div>
       </div>
@@ -138,13 +144,13 @@ export default {
 
 <style scoped>
 .bg-gold {
-  background-color: #FFD700;
+  background-color: #1E40AF;
 }
 .bg-silver {
-  background-color: #C0C0C0;
+  background-color: #3B82F6;
 }
 .bg-bronze {
-  background-color: #CD7F32;
+  background-color: #93C5FD;
 }
 </style>
 
