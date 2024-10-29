@@ -28,6 +28,13 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- Mostrar solo la paginación sin botones -->
+    <div v-if="!isLoading && parejas.length > 0" class="flex justify-center mt-4">
+      <span class="px-4 py-2 border rounded-lg bg-gray-50">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
+    </div>
   </div>
 </template>
 
@@ -45,11 +52,16 @@ export default {
     const campeonatoId = ref(localStorage.getItem('campeonato_id'));
     const startIndex = ref(0);
     const intervalId = ref(null);
+    const itemsPerPage = ref(20);
+
+    const totalItems = computed(() => parejas.value?.length || 0);
+    const currentPage = computed(() => Math.floor(startIndex.value / itemsPerPage.value) + 1);
+    const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value) || 1);
 
     const parejasVisibles = computed(() => {
-      // Ordenar las parejas por ID y luego tomar el slice para la paginación
+      if (!parejas.value) return [];
       const parejasOrdenadas = [...parejas.value].sort((a, b) => a.id - b.id);
-      return parejasOrdenadas.slice(startIndex.value, startIndex.value + 20);
+      return parejasOrdenadas.slice(startIndex.value, startIndex.value + itemsPerPage.value);
     });
 
     const fetchParejasMesas = async () => {
@@ -68,11 +80,12 @@ export default {
 
     const startAutoPagination = () => {
       intervalId.value = setInterval(() => {
-        startIndex.value += 20;
-        if (startIndex.value >= parejas.value.length) {
-          startIndex.value = 0; // Reiniciar al inicio
+        if (startIndex.value + itemsPerPage.value >= totalItems.value) {
+          startIndex.value = 0;
+        } else {
+          startIndex.value += itemsPerPage.value;
         }
-      }, 10000); // Cambiar cada 10 segundos
+      }, 10000);
     };
 
     const stopAutoPagination = () => {
@@ -91,10 +104,16 @@ export default {
     });
 
     return {
+      parejas,
       parejasVisibles,
       isLoading,
       error,
-      partidaActual
+      partidaActual,
+      currentPage,
+      totalPages,
+      startIndex,
+      itemsPerPage,
+      totalItems
     };
   }
 }
