@@ -26,14 +26,23 @@ def test_partidas():
 
 @router.post("/sorteo-inicial", response_model=List[Mesa])
 def realizar_sorteo_inicial(db: Session = Depends(get_db)):
-    parejas_activas = crud_pareja.get_parejas_activas(db)
+    # Obtener el campeonato_id del primer registro de parejas activas
+    campeonato_id = None
+    primera_pareja = db.query(Pareja).filter(Pareja.activa == True).first()
+    if primera_pareja:
+        campeonato_id = primera_pareja.campeonato_id
+    
+    if not campeonato_id:
+        raise HTTPException(status_code=400, detail="No se pudo determinar el campeonato_id")
+    
+    # Obtener solo las parejas activas del campeonato específico
+    parejas_activas = crud_pareja.get_parejas_activas(db, campeonato_id)
     if len(parejas_activas) < 2:
         raise HTTPException(status_code=400, detail="No hay suficientes parejas activas para realizar el sorteo")
     
     # Eliminar mesas existentes antes de crear nuevas
     crud_mesa.eliminar_todas_mesas(db)
     
-    campeonato_id = parejas_activas[0].campeonato_id  # Asumimos que todas las parejas son del mismo campeonato
     campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
     if not campeonato:
         raise HTTPException(status_code=404, detail="Campeonato no encontrado")
@@ -84,5 +93,8 @@ def obtener_mesas_asignadas(campeonato_id: int, db: Session = Depends(get_db)):
                         "club": pareja.club,
                         "mesa": mesa.numero
                     })
+    
+    # Ordenar la lista por ID de pareja
+    parejas_info.sort(key=lambda x: x["id"])
     
     return parejas_info

@@ -37,6 +37,36 @@ def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/mesa/{mesa_id}/partida/{partida}")
+def obtener_resultados_mesa(
+    mesa_id: int, 
+    partida: int, 
+    campeonato_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        return crud_resultado.get_resultados(db, mesa_id, partida, campeonato_id)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/mesa/{mesa_id}/partida/{partida}/tiene-resultados")
+def verificar_resultados_mesa(
+    mesa_id: int, 
+    partida: int, 
+    campeonato_id: int,
+    db: Session = Depends(get_db)
+):
+    return {
+        "tiene_resultados": crud_resultado.mesa_tiene_resultados(
+            db, 
+            mesa_id, 
+            partida, 
+            campeonato_id
+        )
+    }
+
 
 
 

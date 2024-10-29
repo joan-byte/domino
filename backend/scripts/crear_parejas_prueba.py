@@ -13,7 +13,21 @@ from app.db.session import SessionLocal
 
 fake = Faker('es_ES')  # Utilizamos nombres en español
 
-def crear_parejas_prueba(db: Session, campeonato_id: int, num_parejas: int):
+# Lista de clubes para asignar aleatoriamente
+CLUBES = [
+    'Club Dominó Madrid',
+    'Club Dominó Barcelona',
+    'Club Dominó Valencia',
+    'Club Dominó Sevilla',
+    'Club Dominó Bilbao',
+    'Club Dominó Málaga',
+    'Club Dominó Zaragoza',
+    'Club Dominó Murcia',
+    'Club Dominó Valladolid',
+    'Club Dominó Alicante'
+]
+
+def crear_parejas_prueba(db: Session, campeonato_id: int = 3, num_parejas: int = 62):
     # Obtener el campeonato existente
     campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
     if not campeonato:
@@ -29,31 +43,50 @@ def crear_parejas_prueba(db: Session, campeonato_id: int, num_parejas: int):
         # Formar el nombre de la pareja
         nombre_pareja = f"{nombre1} {apellido1} y {nombre2} {apellido2}"
 
+        # Seleccionar un club aleatorio
+        club = fake.random_element(CLUBES)
+
         # Crear la pareja
         pareja = Pareja(
             nombre=nombre_pareja,
             campeonato_id=campeonato.id,
+            club=club,
             activa=True
         )
         db.add(pareja)
         db.flush()  # Para obtener el ID de la pareja
 
         # Crear los jugadores asociados a la pareja
-        jugador1 = Jugador(nombre=nombre1, apellido=apellido1, pareja_id=pareja.id, campeonato_id=campeonato.id)
-        jugador2 = Jugador(nombre=nombre2, apellido=apellido2, pareja_id=pareja.id, campeonato_id=campeonato.id)
+        jugador1 = Jugador(
+            nombre=nombre1, 
+            apellido=apellido1, 
+            pareja_id=pareja.id, 
+            campeonato_id=campeonato.id
+        )
+        jugador2 = Jugador(
+            nombre=nombre2, 
+            apellido=apellido2, 
+            pareja_id=pareja.id, 
+            campeonato_id=campeonato.id
+        )
         
         db.add(jugador1)
         db.add(jugador2)
 
         parejas.append(pareja)
     
-    db.commit()
-
-    # Verificar el número total de jugadores creados
-    total_jugadores = db.query(Jugador).filter(Jugador.campeonato_id == campeonato_id).count()
-    print(f"Se han creado un total de {total_jugadores} jugadores para el campeonato '{campeonato.nombre}' (ID: {campeonato.id}).")
+    try:
+        db.commit()
+        print(f"Se han creado exitosamente {num_parejas} parejas para el campeonato '{campeonato.nombre}' (ID: {campeonato.id})")
+        print(f"Cada pareja ha sido asignada a uno de los {len(CLUBES)} clubes disponibles")
+    except Exception as e:
+        db.rollback()
+        print(f"Error al crear las parejas: {str(e)}")
+        return
 
 if __name__ == "__main__":
     db = SessionLocal()
-    crear_parejas_prueba(db, campeonato_id=3, num_parejas=70)
-    db.close()
+    try:
+        crear_parejas_prueba(db)
+    finally:
+        db.close()

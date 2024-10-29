@@ -73,30 +73,41 @@ def calculate_and_update_results(db: Session, mesa_id: int):
             resultados[0].PP, resultados[1].PP = 0, 0
     db.commit()
 
-def mesa_tiene_resultados(db: Session, mesa_id: int, partida: int):
-    resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+def mesa_tiene_resultados(db: Session, mesa_id: int, partida: int, campeonato_id: int):
+    resultados = db.query(Resultado).filter(
+        Resultado.M == mesa_id, 
+        Resultado.P == partida,
+        Resultado.campeonato_id == campeonato_id
+    ).all()
     return len(resultados) > 0
 
-def get_resultados(db: Session, mesa_id: int, partida: int):
-    print(f"Buscando resultados para mesa_id: {mesa_id}, partida: {partida}")
-    resultados = db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).all()
+def get_resultados(db: Session, mesa_id: int, partida: int, campeonato_id: int):
+    print(f"Buscando resultados para mesa_id: {mesa_id}, partida: {partida}, campeonato_id: {campeonato_id}")
+    resultados = db.query(Resultado).filter(
+        Resultado.M == mesa_id, 
+        Resultado.P == partida,
+        Resultado.campeonato_id == campeonato_id
+    ).all()
     print(f"Resultados encontrados: {resultados}")
     
     if not resultados:
-        raise HTTPException(status_code=404, detail=f"No se encontraron resultados para la mesa {mesa_id} y partida {partida}")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"No se encontraron resultados para la mesa {mesa_id}, partida {partida} y campeonato {campeonato_id}"
+        )
     
     response = {}
     for i, resultado in enumerate(resultados, start=1):
         response[f"pareja{i}"] = {
             "id": resultado.id,
+            "campeonato_id": resultado.campeonato_id,
             "P": resultado.P,
             "M": resultado.M,
             "id_pareja": resultado.id_pareja,
             "GB": resultado.GB,
             "PG": resultado.PG,
             "PP": resultado.PP,
-            "RP": resultado.RP,
-            "campeonato_id": resultado.campeonato_id
+            "RP": resultado.RP
         }
     
     # Si solo hay una pareja, asegurarse de que pareja2 esté presente pero vacía

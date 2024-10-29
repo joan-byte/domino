@@ -87,8 +87,11 @@ def activate_pareja(db: Session, pareja_id: int) -> Pareja:
     db.refresh(db_pareja)
     return db_pareja
 
-def get_parejas_activas(db: Session) -> List[Pareja]:
-    return db.query(Pareja).filter(Pareja.activa == True).all()
+def get_parejas_activas(db: Session, campeonato_id: int = None) -> List[Pareja]:
+    query = db.query(Pareja).filter(Pareja.activa == True)
+    if campeonato_id is not None:
+        query = query.filter(Pareja.campeonato_id == campeonato_id)
+    return query.all()
 
 def get_parejas_con_mesas_por_campeonato(db: Session, campeonato_id: int) -> List[ParejaConMesa]:
     parejas = db.query(Pareja).filter(Pareja.campeonato_id == campeonato_id).all()

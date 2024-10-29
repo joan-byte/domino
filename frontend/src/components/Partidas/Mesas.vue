@@ -46,12 +46,10 @@ export default {
     const startIndex = ref(0);
     const intervalId = ref(null);
 
-    const parejasOrdenadas = computed(() => {
-      return [...parejas.value].sort((a, b) => a.mesa - b.mesa);
-    });
-
     const parejasVisibles = computed(() => {
-      return parejasOrdenadas.value.slice(startIndex.value, startIndex.value + 20);
+      // Ordenar las parejas por ID y luego tomar el slice para la paginación
+      const parejasOrdenadas = [...parejas.value].sort((a, b) => a.id - b.id);
+      return parejasOrdenadas.slice(startIndex.value, startIndex.value + 20);
     });
 
     const fetchParejasMesas = async () => {

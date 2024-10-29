@@ -7,6 +7,9 @@ import random
 from sqlalchemy import text
 
 def crear_mesas(db: Session, parejas_activas: List[Pareja], campeonato_id: int, partida: int) -> List[Mesa]:
+    # Filtrar las parejas para asegurarnos que solo sean del campeonato actual
+    parejas_activas = [p for p in parejas_activas if p.campeonato_id == campeonato_id]
+    
     # Mezclar las parejas aleatoriamente
     random.shuffle(parejas_activas)
     

@@ -100,7 +100,14 @@ export default {
         // Verificar si cada mesa tiene resultados
         for (let mesa of mesasData) {
           try {
-            const resultadoCheck = await axios.get(`http://localhost:8000/api/resultados/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`);
+            const resultadoCheck = await axios.get(
+              `http://localhost:8000/api/resultados/mesa/${mesa.id}/partida/${partidaActual.value}/tiene-resultados`,
+              {
+                params: {
+                  campeonato_id: campeonatoId.value
+                }
+              }
+            );
             mesa.resultado_registrado = resultadoCheck.data.tiene_resultados;
           } catch (e) {
             console.error(`Error al verificar resultados para mesa ${mesa.id}:`, e);
