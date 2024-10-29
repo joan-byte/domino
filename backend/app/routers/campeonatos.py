@@ -70,10 +70,14 @@ def eliminar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{campeonato_id}/parejas", response_model=List[ParejaSchema])
 def obtener_parejas_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
+    # Verificar si el campeonato existe primero
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
+        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+        
     parejas = db.query(Pareja).options(joinedload(Pareja.jugadores)).filter(Pareja.campeonato_id == campeonato_id).all()
-    if not parejas:
-        raise HTTPException(status_code=404, detail="No se encontraron parejas para este campeonato")
-    return parejas
+    # Ya no lanzamos excepción si no hay parejas
+    return parejas  # Retornamos lista vacía si no hay parejas
 
 @router.post("/{campeonato_id}/parejas", response_model=ParejaSchema)
 def crear_pareja_campeonato(campeonato_id: int, pareja: ParejaCreate, db: Session = Depends(get_db)):

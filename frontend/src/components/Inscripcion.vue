@@ -147,42 +147,47 @@
     <div class="w-full bg-white p-6 rounded-lg shadow-md overflow-x-auto mt-6">
       <h2 class="text-xl font-bold mb-4 text-center">Lista de Parejas Inscritas</h2>
       <div v-if="isLoading">Cargando parejas...</div>
-      <div v-else-if="error">{{ error }}</div>
-      <table v-else class="min-w-full bg-white border border-gray-300">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="py-2 px-4 border-b text-left">ID</th>
-            <th class="py-2 px-4 border-b text-left">Nombre</th>
-            <th class="py-2 px-4 border-b text-left">Club</th>
-            <th class="py-2 px-4 border-b text-center">Activa</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr 
-            v-for="pareja in parejas" 
-            :key="pareja.id" 
-            @click="seleccionarPareja(pareja)"
-            :class="{
-              'hover:bg-gray-50 cursor-pointer': inscripcionAbierta,
-              'bg-gray-100': pareja.id === parejaSeleccionada?.id && inscripcionAbierta
-            }"
-          >
-            <td class="py-2 px-4 border-b">{{ pareja.id }}</td>
-            <td class="py-2 px-4 border-b">{{ pareja.nombre }}</td>
-            <td class="py-2 px-4 border-b">{{ pareja.club }}</td>
-            <td class="py-2 px-4 border-b text-center">
-              <input 
-                type="checkbox" 
-                :id="`pareja-${pareja.id}`"
-                :name="`pareja-${pareja.id}`"
-                :checked="pareja.activa" 
-                :disabled="true"
-                class="form-checkbox h-5 w-5 text-blue-600 cursor-not-allowed"
-              >
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else-if="error" class="text-red-500">{{ error }}</div>
+      <div v-else>
+        <table v-if="parejas.length > 0" class="min-w-full bg-white border border-gray-300">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="py-2 px-4 border-b text-left">ID</th>
+              <th class="py-2 px-4 border-b text-left">Nombre</th>
+              <th class="py-2 px-4 border-b text-left">Club</th>
+              <th class="py-2 px-4 border-b text-center">Activa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              v-for="pareja in parejas" 
+              :key="pareja.id" 
+              @click="seleccionarPareja(pareja)"
+              :class="{
+                'hover:bg-gray-50 cursor-pointer': inscripcionAbierta,
+                'bg-gray-100': pareja.id === parejaSeleccionada?.id && inscripcionAbierta
+              }"
+            >
+              <td class="py-2 px-4 border-b">{{ pareja.id }}</td>
+              <td class="py-2 px-4 border-b">{{ pareja.nombre }}</td>
+              <td class="py-2 px-4 border-b">{{ pareja.club }}</td>
+              <td class="py-2 px-4 border-b text-center">
+                <input 
+                  type="checkbox" 
+                  :id="`pareja-${pareja.id}`"
+                  :name="`pareja-${pareja.id}`"
+                  :checked="pareja.activa" 
+                  :disabled="true"
+                  class="form-checkbox h-5 w-5 text-blue-600 cursor-not-allowed"
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="text-center py-4 text-gray-600">
+          No hay parejas inscritas en este campeonato.
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -251,12 +256,15 @@ export default {
         console.log('Parejas obtenidas:', parejas.value);
       } catch (e) {
         console.error('Error al obtener las parejas', e);
-        if (e.response) {
-          error.value = `Error del servidor: ${e.response.status} - ${e.response.data.detail || JSON.stringify(e.response.data)}`;
-        } else if (e.request) {
-          error.value = 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.';
+        if (e.response?.status === 404) {
+          if (e.response.data.detail === "Campeonato no encontrado") {
+            error.value = 'El campeonato seleccionado no existe.';
+          } else {
+            parejas.value = []; // Si no hay parejas, inicializamos como array vacío
+            error.value = ''; // Limpiamos cualquier error previo
+          }
         } else {
-          error.value = `Error al cargar las parejas: ${e.message}`;
+          error.value = 'Error al conectar con el servidor. Por favor, intente de nuevo más tarde.';
         }
       } finally {
         isLoading.value = false;
