@@ -8,7 +8,7 @@
           @click="finalizarPartida"
           class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mr-4"
         >
-          Finalizar Partida
+          {{ esUltimaPartida ? 'Cierre Campeonato' : 'Finalizar Partida' }}
         </button>
         <div class="text-xl font-semibold">
           Partida {{ partidaActual }}
@@ -77,6 +77,7 @@ export default {
     const error = ref(null);
     const partidaActual = ref(localStorage.getItem('partida_actual') || '1');
     const campeonatoId = ref(localStorage.getItem('campeonato_id'));
+    const numeroPartidasCampeonato = ref(parseInt(localStorage.getItem('campeonato_partidas') || '0'));
 
     const todasParejasRegistradas = computed(() => {
       return mesas.value.every(mesa => mesa.resultado_registrado);
@@ -84,6 +85,10 @@ export default {
 
     const mesasOrdenadas = computed(() => {
       return [...mesas.value].sort((a, b) => a.numero - b.numero);
+    });
+
+    const esUltimaPartida = computed(() => {
+      return parseInt(partidaActual.value) === numeroPartidasCampeonato.value;
     });
 
     const fetchMesas = async () => {
@@ -215,6 +220,15 @@ export default {
         const rankingResponse = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`);
         const ranking = rankingResponse.data;
 
+        if (esUltimaPartida.value) {
+          // Si es la última partida, navegar al podium con el parámetro mostrar
+          router.push({
+            path: '/resultados/podium',
+            query: { mostrar: 'true' }
+          });
+          return;
+        }
+
         // 2. Calcular las nuevas asignaciones de mesas
         const nuevasAsignaciones = calcularNuevasAsignaciones(ranking);
 
@@ -283,7 +297,8 @@ export default {
       finalizarPartida,
       registrarResultado,
       modificarResultado,
-      irARegistroResultado
+      irARegistroResultado,
+      esUltimaPartida,
     };
   }
 }
