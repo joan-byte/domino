@@ -15,6 +15,7 @@ from sqlalchemy import func, case
 from app.models.mesa import Mesa
 from app.schemas.mesa import MesaAsignacion
 from app.models.ranking_final import RankingFinal
+from sqlalchemy import text
 
 router = APIRouter()
 
@@ -153,8 +154,8 @@ def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
                 (func.max(case((Resultado.GB == "B", 1), else_=0)) > 0, "B"),
                 else_="A"
             ).label("GB"),
-            func.sum(Resultado.PG).label("PG_total"),
-            func.sum(Resultado.PP).label("PP_total")
+            func.coalesce(func.sum(Resultado.PG), 0).label("PG_total"),
+            func.coalesce(func.sum(Resultado.PP), 0).label("PP_total")
         )
         .filter(Resultado.campeonato_id == campeonato_id)
         .group_by(Resultado.id_pareja)
@@ -292,8 +293,8 @@ def get_ranking_final(campeonato_id: int, db: Session = Depends(get_db)):
             {
                 "pareja_id": r.pareja_id,
                 "nombre_pareja": r.nombre_pareja,
-                "PG": r.puntos_ganados,
-                "PP": r.puntos_perdidos,
+                "PG": r.PG,
+                "PP": r.PP,
                 "posicion": r.posicion
             }
             for r in ranking_final
@@ -303,8 +304,11 @@ def get_ranking_final(campeonato_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{campeonato_id}/cerrar-campeonato")
 def cerrar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
-    # Obtener el ranking actual
+    # Obtener el ranking actual usando la función get_ranking que ya funciona
     ranking = get_ranking(campeonato_id, db)
+    
+    # Primero, eliminar cualquier ranking final existente para este campeonato
+    db.query(RankingFinal).filter(RankingFinal.campeonato_id == campeonato_id).delete()
     
     # Guardar el ranking final
     for posicion, pareja in enumerate(ranking, 1):
@@ -312,15 +316,23 @@ def cerrar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
             campeonato_id=campeonato_id,
             pareja_id=pareja["pareja_id"],
             nombre_pareja=pareja["nombre_pareja"],
-            puntos_ganados=pareja["PG"],
-            puntos_perdidos=pareja["PP"],
+            PG=pareja["PG"] or 0,
+            PP=pareja["PP"] or 0,
             posicion=posicion
         )
+        print(f"Guardando ranking final para pareja {pareja['nombre_pareja']}: PG={pareja['PG']}, PP={pareja['PP']}")
         db.add(ranking_final)
     
     # Marcar el campeonato como cerrado
     campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
+        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+    
     campeonato.estado = "CERRADO"
     
-    db.commit()
-    return {"message": "Campeonato cerrado exitosamente"}
+    try:
+        db.commit()
+        return {"message": "Campeonato cerrado exitosamente"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al cerrar el campeonato: {str(e)}")

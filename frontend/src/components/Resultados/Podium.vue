@@ -12,7 +12,10 @@
             {{ mostrarPodium ? (podium[1]?.nombre_pareja || 'N/A') : 'Pendiente' }}
           </p>
         </div>
-        <div class="bg-silver h-16 w-80"></div>
+        <div class="bg-silver h-16 w-80 flex flex-col justify-center items-center text-white">
+          <div>Partidas Ganadas: {{ mostrarPodium ? (podium[1]?.PG || '0') : '-' }}</div>
+          <div>Puntos Totales: {{ mostrarPodium ? (podium[1]?.PP || '0') : '-' }}</div>
+        </div>
       </div>
       
       <!-- Primer lugar -->
@@ -23,7 +26,10 @@
             {{ mostrarPodium ? (podium[0]?.nombre_pareja || 'N/A') : 'Pendiente' }}
           </p>
         </div>
-        <div class="bg-gold h-24 w-80"></div>
+        <div class="bg-gold h-24 w-80 flex flex-col justify-center items-center text-white">
+          <div>Partidas Ganadas: {{ mostrarPodium ? (podium[0]?.PG || '0') : '-' }}</div>
+          <div>Puntos Totales: {{ mostrarPodium ? (podium[0]?.PP || '0') : '-' }}</div>
+        </div>
       </div>
       
       <!-- Tercer lugar -->
@@ -34,7 +40,10 @@
             {{ mostrarPodium ? (podium[2]?.nombre_pareja || 'N/A') : 'Pendiente' }}
           </p>
         </div>
-        <div class="bg-bronze h-12 w-80"></div>
+        <div class="bg-bronze h-12 w-80 flex flex-col justify-center items-center text-white">
+          <div class="text-sm">Partidas Ganadas: {{ mostrarPodium ? (podium[2]?.PG || '0') : '-' }}</div>
+          <div class="text-sm">Puntos Totales: {{ mostrarPodium ? (podium[2]?.PP || '0') : '-' }}</div>
+        </div>
       </div>
     </div>
 
@@ -46,8 +55,8 @@
           <tr>
             <th class="px-4 py-2">Posición</th>
             <th class="px-4 py-2">Pareja</th>
-            <th class="px-4 py-2">PG</th>
-            <th class="px-4 py-2">PP</th>
+            <th class="px-4 py-2">Partidas Ganadas</th>
+            <th class="px-4 py-2">Puntos Totales</th>
           </tr>
         </thead>
         <tbody>

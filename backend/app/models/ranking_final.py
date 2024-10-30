@@ -8,6 +8,6 @@ class RankingFinal(Base):
     campeonato_id = Column(Integer, ForeignKey("campeonatos.id"))
     pareja_id = Column(Integer, ForeignKey("parejas.id"))
     nombre_pareja = Column(String)
-    puntos_ganados = Column(Integer)
-    puntos_perdidos = Column(Integer)
+    PG = Column(Integer)
+    PP = Column(Integer)
     posicion = Column(Integer) 
