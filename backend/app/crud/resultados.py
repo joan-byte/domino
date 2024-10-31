@@ -5,22 +5,34 @@ from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException
 from sqlalchemy import func, case
 from app.models.jugador import Pareja
+from app.models.mesa import Mesa
 
 def create_resultado(db: Session, resultado: ResultadoCreate):
     # Verificar si estamos en la mitad del campeonato y es grupo B
     def should_be_gb_b(mesa_id: int, campeonato_id: int) -> bool:
         try:
+            # Obtener el número de mesa para el mesa_id dado
+            mesa_actual = db.query(Mesa.numero).filter(
+                Mesa.campeonato_id == campeonato_id,
+                Mesa.partida == resultado.pareja1.P,
+                Mesa.id == mesa_id
+            ).first()
+
+            if not mesa_actual:
+                print(f"No se encontró la mesa con ID {mesa_id}")
+                return False
+
             # Obtener el total de mesas para esta partida
-            total_mesas = db.query(func.count(Resultado.M.distinct())).filter(
-                Resultado.campeonato_id == campeonato_id,
-                Resultado.P == resultado.pareja1.P
+            total_mesas = db.query(func.count(Mesa.id.distinct())).filter(
+                Mesa.campeonato_id == campeonato_id,
+                Mesa.partida == resultado.pareja1.P
             ).scalar() or 0
 
             # Calcular la mitad de las mesas (redondeando hacia abajo)
             mitad_mesas = total_mesas // 2
 
             # La mesa está en la segunda mitad si su número es mayor que la mitad
-            return mesa_id > mitad_mesas
+            return mesa_actual.numero > mitad_mesas
         except Exception as e:
             print(f"Error al verificar GB para mesa {mesa_id}: {str(e)}")
             return False
