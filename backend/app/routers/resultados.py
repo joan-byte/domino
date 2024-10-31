@@ -4,8 +4,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.crud import resultados as crud_resultado
 from app.schemas.resultado import ResultadoSchema, ResultadoCreate, Resultado, ResultadoResponse
+from app.models.resultado import Resultado
+from app.models.campeonato import Campeonato
 from sqlalchemy import func
 from sqlalchemy.sql import func
+from typing import Dict
 
 router = APIRouter()
 
@@ -45,7 +48,7 @@ def get_resultados(
 def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db: Session = Depends(get_db)):
     return crud_resultado.update_resultados(db, mesa_id, partida, resultado)
 
-@router.put("/resultados/{mesa_id}/{partida}", response_model=dict[str, Resultado])
+@router.put("/resultados/{mesa_id}/{partida}")
 def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db: Session = Depends(get_db)):
     try:
         return crud_resultado.update_resultados(db, mesa_id, partida, resultado)
@@ -81,6 +84,50 @@ def verificar_resultados_mesa(
             campeonato_id
         )
     }
+
+@router.post("/inicializar-gb")
+def inicializar_gb(datos: dict, db: Session = Depends(get_db)):
+    try:
+        # Actualizar TODOS los resultados futuros de la pareja
+        db.query(Resultado).filter(
+            Resultado.campeonato_id == datos["campeonato_id"],
+            Resultado.id_pareja == datos["pareja_id"],
+            Resultado.P > datos["partida_actual"]  # Solo partidas futuras
+        ).update({"GB": datos["gb"]})
+        
+        # Crear plantillas para todas las partidas futuras si no existen
+        partida_actual = datos["partida_actual"]
+        campeonato = db.query(Campeonato).filter(
+            Campeonato.id == datos["campeonato_id"]
+        ).first()
+        
+        if campeonato:
+            for partida in range(partida_actual + 1, campeonato.numero_partidas + 1):
+                # Verificar si ya existe un resultado para esta partida
+                resultado_existente = db.query(Resultado).filter(
+                    Resultado.campeonato_id == datos["campeonato_id"],
+                    Resultado.id_pareja == datos["pareja_id"],
+                    Resultado.P == partida
+                ).first()
+                
+                # Si no existe, crear uno nuevo
+                if not resultado_existente:
+                    nuevo_resultado = Resultado(
+                        campeonato_id=datos["campeonato_id"],
+                        id_pareja=datos["pareja_id"],
+                        GB=datos["gb"],
+                        P=partida
+                    )
+                    db.add(nuevo_resultado)
+        
+        db.commit()
+        return {"message": "GB inicializado correctamente para todas las partidas futuras"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al inicializar GB: {str(e)}"
+        )
 
 
 

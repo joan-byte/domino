@@ -230,12 +230,56 @@ export default {
 
     const finalizarPartida = async () => {
       try {
-        // 1. Obtener el ranking actual
+        // Verificar si es grupo B y si estamos exactamente en la mitad del campeonato
+        const esGrupoB = localStorage.getItem('campeonato_grupo') === 'B';
+        const partidaActualNum = parseInt(partidaActual.value);
+        const totalPartidas = parseInt(localStorage.getItem('campeonato_partidas'));
+        
+        // Asegurarnos de que la mitad se redondea hacia abajo
+        const mitadPartidas = Math.floor(totalPartidas / 2);
+        
+        console.log('Partida actual:', partidaActualNum);
+        console.log('Total partidas:', totalPartidas);
+        console.log('Mitad partidas (redondeado hacia abajo):', mitadPartidas);
+        
+        // Solo procesar la división si es grupo B y estamos exactamente en la mitad
+        if (esGrupoB && partidaActualNum === mitadPartidas) {
+          console.log('Procesando división de grupos en mitad del campeonato...');
+          
+          // 1. Obtener el ranking actual
+          const rankingResponse = await axios.get(
+            `http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`
+          );
+          const ranking = rankingResponse.data;
+          
+          // Calcular la mitad de parejas (también redondeando hacia abajo)
+          const mitadParejas = Math.floor(ranking.length / 2);
+          
+          console.log('Total parejas:', ranking.length);
+          console.log('Mitad parejas (redondeado hacia abajo):', mitadParejas);
+          
+          // Crear resultados iniciales para la siguiente partida con GB='B' para las parejas de la segunda mitad
+          for (let i = mitadParejas; i < ranking.length; i++) {
+            const pareja = ranking[i];
+            try {
+              // Crear un resultado inicial para la siguiente partida y todas las futuras
+              await axios.post('http://localhost:8000/api/resultados/inicializar-gb', {
+                campeonato_id: parseInt(campeonatoId.value),
+                pareja_id: pareja.pareja_id,
+                partida_actual: partidaActualNum,
+                gb: 'B'
+              });
+            } catch (error) {
+              console.error(`Error al inicializar GB para pareja ${pareja.pareja_id}:`, error);
+            }
+          }
+        }
+
+        // Continuar con la lógica existente
         const rankingResponse = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`);
         const ranking = rankingResponse.data;
 
         if (esUltimaPartida.value) {
-          // Si es la última partida, navegar al podium con el parámetro mostrar
           router.push({
             path: '/resultados/podium',
             query: { mostrar: 'true' }

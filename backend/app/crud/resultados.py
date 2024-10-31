@@ -3,8 +3,49 @@ from app.models.resultado import Resultado
 from app.schemas.resultado import ResultadoCreate, ResultadoUpdate
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException
+from sqlalchemy import func, case
+from app.models.jugador import Pareja
 
 def create_resultado(db: Session, resultado: ResultadoCreate):
+    # Verificar si estamos en la mitad del campeonato y es grupo B
+    def should_be_gb_b(mesa_id: int, campeonato_id: int) -> bool:
+        try:
+            # Obtener el total de mesas para esta partida
+            total_mesas = db.query(func.count(Resultado.M.distinct())).filter(
+                Resultado.campeonato_id == campeonato_id,
+                Resultado.P == resultado.pareja1.P
+            ).scalar() or 0
+
+            # Calcular la mitad de las mesas (redondeando hacia abajo)
+            mitad_mesas = total_mesas // 2
+
+            # La mesa está en la segunda mitad si su número es mayor que la mitad
+            return mesa_id > mitad_mesas
+        except Exception as e:
+            print(f"Error al verificar GB para mesa {mesa_id}: {str(e)}")
+            return False
+
+    def get_gb_for_pareja(pareja_id: int, mesa_id: int) -> str:
+        # Primero verificar si la pareja ya tiene algún GB='B'
+        gb_anterior = db.query(
+            func.max(case(
+                (Resultado.GB == 'B', 'B'),
+                else_='A'
+            ))
+        ).filter(
+            Resultado.campeonato_id == resultado.campeonato_id,
+            Resultado.id_pareja == pareja_id
+        ).scalar()
+
+        if gb_anterior == 'B':
+            return 'B'
+
+        # Si no tiene GB='B' previo, verificar si debería tenerlo por su posición en la mesa
+        es_grupo_b = should_be_gb_b(mesa_id, resultado.campeonato_id)
+        return 'B' if es_grupo_b else 'A'
+
+    # Crear resultado para pareja 1
+    gb_pareja1 = get_gb_for_pareja(resultado.pareja1.id_pareja, resultado.pareja1.M)
     db_resultado1 = Resultado(
         campeonato_id=resultado.campeonato_id,
         P=resultado.pareja1.P,
@@ -13,12 +54,13 @@ def create_resultado(db: Session, resultado: ResultadoCreate):
         RP=resultado.pareja1.RP,
         PG=resultado.pareja1.PG,
         PP=resultado.pareja1.PP,
-        GB=resultado.pareja1.GB
+        GB=gb_pareja1
     )
     db.add(db_resultado1)
     
     db_resultado2 = None
     if resultado.pareja2:
+        gb_pareja2 = get_gb_for_pareja(resultado.pareja2.id_pareja, resultado.pareja2.M)
         db_resultado2 = Resultado(
             campeonato_id=resultado.campeonato_id,
             P=resultado.pareja2.P,
@@ -27,19 +69,23 @@ def create_resultado(db: Session, resultado: ResultadoCreate):
             RP=resultado.pareja2.RP,
             PG=resultado.pareja2.PG,
             PP=resultado.pareja2.PP,
-            GB=resultado.pareja2.GB
+            GB=gb_pareja2
         )
         db.add(db_resultado2)
     
-    db.commit()
-    db.refresh(db_resultado1)
-    if db_resultado2:
-        db.refresh(db_resultado2)
-    
-    return {
-        "pareja1": db_resultado1.to_dict(),
-        "pareja2": db_resultado2.to_dict() if db_resultado2 else None
-    }
+    try:
+        db.commit()
+        db.refresh(db_resultado1)
+        if db_resultado2:
+            db.refresh(db_resultado2)
+        
+        return {
+            "pareja1": db_resultado1.to_dict(),
+            "pareja2": db_resultado2.to_dict() if db_resultado2 else None
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 def get_resultado(db: Session, resultado_id: int):
     return db.query(Resultado).filter(Resultado.id == resultado_id).first()
@@ -147,3 +193,38 @@ def update_resultados(db: Session, mesa_id: int, partida: int, resultado: Result
 
 def get_resultado_by_mesa_and_partida(db: Session, mesa_id: int, partida: int):
     return db.query(Resultado).filter(Resultado.M == mesa_id, Resultado.P == partida).first()
+
+def get_ranking(db: Session, campeonato_id: int):
+    # Primero obtenemos todos los resultados para cada pareja
+    resultados = db.query(
+        Resultado.id_pareja,
+        func.sum(Resultado.PG).label('total_PG'),
+        func.sum(Resultado.PP).label('total_PP'),
+        # Usamos una subquery para determinar si algún resultado tiene GB='B'
+        func.max(case(
+            (Resultado.GB == 'B', 'B'),
+            else_='A'
+        )).label('GB')
+    ).filter(
+        Resultado.campeonato_id == campeonato_id
+    ).group_by(
+        Resultado.id_pareja
+    ).all()
+
+    # Procesamos los resultados
+    ranking = []
+    for resultado in resultados:
+        pareja = db.query(Pareja).filter(Pareja.id == resultado.id_pareja).first()
+        if pareja:
+            ranking.append({
+                'pareja_id': resultado.id_pareja,
+                'nombre_pareja': pareja.nombre,
+                'club': pareja.club,
+                'PG': resultado.total_PG,
+                'PP': resultado.total_PP,
+                'GB': resultado.GB
+            })
+
+    # Ordenar el ranking
+    ranking.sort(key=lambda x: (-x['PG'], x['PP']))
+    return ranking
