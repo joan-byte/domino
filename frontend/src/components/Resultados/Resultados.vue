@@ -85,6 +85,7 @@ export default {
     const mesaId = ref(route.params.id);
     const partidaActual = ref(route.query.partida);
     const isModificando = ref(route.query.modificar === 'true');
+    const campeonatoId = ref(localStorage.getItem('campeonato_id'));
     const pareja1 = ref({
       id_pareja: route.query.pareja1_id,
       nombre: '',
@@ -238,7 +239,14 @@ export default {
         if (isModificando.value && tieneResultados) {
           console.log(`Obteniendo resultados para mesa ${mesaId.value} y partida ${partidaActual.value}`);
           try {
-            const resultadosResponse = await axios.get(`http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`);
+            const resultadosResponse = await axios.get(
+              `http://localhost:8000/api/resultados/${mesaId.value}/${partidaActual.value}`,
+              {
+                params: {
+                  campeonato_id: localStorage.getItem('campeonato_id')
+                }
+              }
+            );
             const resultados = resultadosResponse.data;
             console.log('Resultados obtenidos:', resultados);
             
@@ -280,7 +288,8 @@ export default {
       validarRP,
       isModificando,
       cancelarModificacion,
-      actualizarRanking
+      actualizarRanking,
+      campeonatoId
     };
   }
 }

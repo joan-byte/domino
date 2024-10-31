@@ -176,7 +176,14 @@ export default {
     const modificarResultado = async (mesa) => {
       try {
         console.log(`Verificando resultados para mesa ${mesa.id} y partida ${partidaActual.value}`);
-        const response = await axios.get(`http://localhost:8000/api/resultados/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`);
+        const response = await axios.get(
+          `http://localhost:8000/api/resultados/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`, 
+          {
+            params: {
+              campeonato_id: campeonatoId.value
+            }
+          }
+        );
         const tieneResultados = response.data.tiene_resultados;
         console.log(`Tiene resultados: ${tieneResultados}`, response.data);
         

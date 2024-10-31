@@ -18,13 +18,28 @@ def test_connection():
     return {"message": "Conexión exitosa"}
 
 @router.get("/mesa-tiene-resultados/{mesa_id}/{partida}")
-def check_mesa_tiene_resultados(mesa_id: int, partida: int, db: Session = Depends(get_db)):
-    tiene_resultados = crud_resultado.mesa_tiene_resultados(db, mesa_id, partida)
+def check_mesa_tiene_resultados(
+    mesa_id: int, 
+    partida: int, 
+    campeonato_id: int,
+    db: Session = Depends(get_db)
+):
+    tiene_resultados = crud_resultado.mesa_tiene_resultados(
+        db=db, 
+        mesa_id=mesa_id, 
+        partida=partida,
+        campeonato_id=campeonato_id
+    )
     return {"tiene_resultados": tiene_resultados}
 
 @router.get("/{mesa_id}/{partida}")
-def get_resultados(mesa_id: int, partida: int, db: Session = Depends(get_db)):
-    return crud_resultado.get_resultados(db, mesa_id, partida)
+def get_resultados(
+    mesa_id: int, 
+    partida: int, 
+    campeonato_id: int,
+    db: Session = Depends(get_db)
+):
+    return crud_resultado.get_resultados(db, mesa_id, partida, campeonato_id)
 
 @router.post("/update/{mesa_id}/{partida}")
 def update_resultados(mesa_id: int, partida: int, resultado: ResultadoCreate, db: Session = Depends(get_db)):

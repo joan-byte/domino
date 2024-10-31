@@ -14,13 +14,15 @@ mapper_registry.configure()
 
 app = FastAPI()
 
-# Configuración de CORS
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # URL de tu frontend
+    allow_origins=["http://localhost:8080"],  # Origen de tu frontend
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permite todos los métodos HTTP
+    allow_headers=["*"],  # Permite todos los headers
+    expose_headers=["*"],  # Añadir esta línea
+    max_age=3600,         # Añadir esta línea
 )
 
 # Crear las tablas en la base de datos
