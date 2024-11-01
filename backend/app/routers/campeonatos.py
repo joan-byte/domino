@@ -182,18 +182,32 @@ def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    return [
-        {
+    # Procesar el ranking para asignar posiciones independientes por grupo
+    resultado_final = []
+    posicion_grupo_a = 1
+    posicion_grupo_b = 1
+
+    for r in ranking:
+        es_grupo_b = r.GB == "B"
+        posicion = posicion_grupo_b if es_grupo_b else posicion_grupo_a
+
+        resultado_final.append({
             "partida": r.ultima_partida or 0,
             "GB": r.GB or "A",
             "PG": r.PG_total or 0,
             "PP": r.PP_total or 0,
             "pareja_id": r.pareja_id,
             "nombre_pareja": r.nombre_pareja,
-            "club": r.club
-        }
-        for r in ranking
-    ]
+            "club": r.club,
+            "posicion": posicion
+        })
+
+        if es_grupo_b:
+            posicion_grupo_b += 1
+        else:
+            posicion_grupo_a += 1
+
+    return resultado_final
 
 @router.post("/{campeonato_id}/actualizar-ranking")
 def actualizar_ranking(campeonato_id: int, db: Session = Depends(get_db)):

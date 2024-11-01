@@ -17,8 +17,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(pareja, index) in parejasVisibles" :key="pareja.pareja_id" class="hover:bg-gray-50">
-          <td class="py-2 px-4 border-b text-center">{{ startIndex + index + 1 }}</td>
+        <tr v-for="pareja in parejasVisibles" :key="pareja.pareja_id" class="hover:bg-gray-50">
+          <td class="py-2 px-4 border-b text-center">{{ pareja.posicion }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.partida }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.GB }}</td>
           <td class="py-2 px-4 border-b text-center">{{ pareja.PG }}</td>
