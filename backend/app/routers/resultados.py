@@ -129,6 +129,25 @@ def inicializar_gb(datos: dict, db: Session = Depends(get_db)):
             detail=f"Error al inicializar GB: {str(e)}"
         )
 
+@router.post("/ajustar-pg")
+def ajustar_pg(datos: dict, db: Session = Depends(get_db)):
+    try:
+        # Actualizar el PG de la pareja en la última partida registrada
+        resultado = db.query(Resultado).filter(
+            Resultado.campeonato_id == datos["campeonato_id"],
+            Resultado.id_pareja == datos["pareja_id"]
+        ).order_by(Resultado.P.desc()).first()
+        
+        if resultado:
+            resultado.PG = datos["nuevo_pg"]
+            db.commit()
+            return {"message": "PG actualizado correctamente"}
+        else:
+            raise HTTPException(status_code=404, detail="No se encontró el resultado para ajustar")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 

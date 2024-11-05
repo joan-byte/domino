@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4 bg-gray-100 rounded-lg shadow-md">
-    <h1 class="text-3xl font-bold mb-4">Partida {{ partidaActual }} - Mesa {{ mesaId }} - GB A</h1>
+    <h1 class="text-3xl font-bold mb-4">Partida {{ partidaActual }} - Mesa {{ mesaNumero }} - GB {{ grupoB }}</h1>
     
     <div v-if="!isModificando" class="mb-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4" role="alert">
       <p class="font-bold">Nuevo registro</p>
@@ -83,6 +83,8 @@ export default {
     const route = useRoute();
     const router = useRouter();
     const mesaId = ref(route.params.id);
+    const mesaNumero = ref(0);
+    const grupoB = ref('A');
     const partidaActual = ref(route.query.partida);
     const isModificando = ref(route.query.modificar === 'true');
     const campeonatoId = ref(localStorage.getItem('campeonato_id'));
@@ -271,15 +273,50 @@ export default {
         }
 
         calcularResultados();
+
+        // Obtener información de la mesa
+        const mesaResponse = await axios.get(`http://localhost:8000/api/mesas/${mesaId.value}`);
+        mesaNumero.value = mesaResponse.data.numero;
+        grupoB.value = mesaResponse.data.grupo;
+
+        // Actualizar el payload con el grupo correcto
+        const payload = {
+          campeonato_id: parseInt(campeonatoId.value),
+          pareja1: {
+            P: parseInt(partidaActual.value),
+            M: parseInt(mesaId.value),
+            id_pareja: parseInt(pareja1.value.id_pareja),
+            GB: grupoB.value,  // Usar el grupo obtenido
+            PG: pareja1.value.PG,
+            PP: pareja1.value.PP,
+            RP: pareja1.value.RP
+          }
+        };
+
+        if (pareja2.value.id_pareja !== null) {
+          payload.pareja2 = {
+            P: parseInt(partidaActual.value),
+            M: parseInt(mesaId.value),
+            id_pareja: parseInt(pareja2.value.id_pareja),
+            GB: grupoB.value,  // Usar el grupo obtenido
+            PG: pareja2.value.PG,
+            PP: pareja2.value.PP,
+            RP: pareja2.value.RP
+          };
+        }
+
+        // ... resto del código existente ...
       } catch (e) {
-        console.error('Error al cargar los datos de las parejas', e);
-        alert('Error al cargar los datos de las parejas. Por favor, intente de nuevo.');
+        console.error('Error al cargar los datos', e);
+        alert('Error al cargar los datos. Por favor, intente de nuevo.');
         router.push('/resultados/registro_partida');
       }
     });
 
     return {
       mesaId,
+      mesaNumero,
+      grupoB,
       partidaActual,
       pareja1,
       pareja2,

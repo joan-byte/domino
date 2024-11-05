@@ -230,49 +230,70 @@ export default {
 
     const finalizarPartida = async () => {
       try {
-        // Verificar si es grupo B y si estamos exactamente en la mitad del campeonato
-        const esGrupoB = localStorage.getItem('campeonato_grupo') === 'B';
+        // Verificar si es la penúltima partida
         const partidaActualNum = parseInt(partidaActual.value);
         const totalPartidas = parseInt(localStorage.getItem('campeonato_partidas'));
         
-        // Asegurarnos de que la mitad se redondea hacia abajo
-        const mitadPartidas = Math.floor(totalPartidas / 2);
-        
-        console.log('Partida actual:', partidaActualNum);
-        console.log('Total partidas:', totalPartidas);
-        console.log('Mitad partidas (redondeado hacia abajo):', mitadPartidas);
-        
-        // Solo procesar la división si es grupo B y estamos exactamente en la mitad
-        if (esGrupoB && partidaActualNum === mitadPartidas) {
-          console.log('Procesando división de grupos en mitad del campeonato...');
-          
-          // 1. Obtener el ranking actual
+        if (partidaActualNum + 1 === totalPartidas) {
+          // Obtener el ranking actual separado por grupos
           const rankingResponse = await axios.get(
             `http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`
           );
           const ranking = rankingResponse.data;
-          
-          // Calcular la mitad de parejas (también redondeando hacia abajo)
-          const mitadParejas = Math.floor(ranking.length / 2);
-          
-          console.log('Total parejas:', ranking.length);
-          console.log('Mitad parejas (redondeado hacia abajo):', mitadParejas);
-          
-          // Crear resultados iniciales para la siguiente partida con GB='B' para las parejas de la segunda mitad
-          for (let i = mitadParejas; i < ranking.length; i++) {
-            const pareja = ranking[i];
-            try {
-              // Crear un resultado inicial para la siguiente partida y todas las futuras
-              await axios.post('http://localhost:8000/api/resultados/inicializar-gb', {
-                campeonato_id: parseInt(campeonatoId.value),
-                pareja_id: pareja.pareja_id,
-                partida_actual: partidaActualNum,
-                gb: 'B'
-              });
-            } catch (error) {
-              console.error(`Error al inicializar GB para pareja ${pareja.pareja_id}:`, error);
+
+          // Separar parejas por grupos
+          const grupoA = ranking.filter(p => p.GB === 'A');
+          const grupoB = ranking.filter(p => p.GB === 'B');
+
+          // Función para verificar si una pareja debe jugar la última partida
+          const debeJugarUltimaPartida = (primera, segunda) => {
+            // Si la diferencia en PG es mayor a 1, la primera pareja no juega
+            if (primera.PG - segunda.PG > 1) {
+              return false;
             }
-          }
+            
+            // Solo verificar PP si la diferencia en PG es exactamente 1
+            if (primera.PG - segunda.PG === 1) {
+              // Si la diferencia en PP es mayor a 300, la primera pareja no juega
+              if (primera.PP - segunda.PP > 300) {
+                return false;
+              }
+            }
+            
+            // Si los PG son iguales o la diferencia de PP no es suficiente, se debe jugar
+            return true;
+          };
+
+          // Verificar y ajustar PG para las parejas que no deben jugar
+          const ajustarParejas = async (grupo) => {
+            if (grupo.length >= 2) {
+              const [primera, segunda] = grupo;
+              if (!debeJugarUltimaPartida(primera, segunda)) {
+                // Sumar un punto adicional a la primera pareja
+                await axios.post(`http://localhost:8000/api/resultados/ajustar-pg`, {
+                  pareja_id: primera.pareja_id,
+                  campeonato_id: campeonatoId.value,
+                  nuevo_pg: primera.PG + 1
+                });
+                
+                // Marcar la pareja para que no sea incluida en la asignación de mesas
+                primera.excluir_ultima_partida = true;
+              }
+            }
+          };
+
+          // Ajustar parejas para ambos grupos
+          await ajustarParejas(grupoA);
+          await ajustarParejas(grupoB);
+
+          // Filtrar las parejas que deben jugar la última partida
+          const parejasParaUltimaPartida = ranking.filter(p => !p.excluir_ultima_partida);
+
+          // Calcular las nuevas asignaciones solo con las parejas que deben jugar
+          const nuevasAsignaciones = calcularNuevasAsignaciones(parejasParaUltimaPartida);
+
+          // Continuar con la lógica existente usando las nuevas asignaciones
+          await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/asignar-mesas`, nuevasAsignaciones);
         }
 
         // Continuar con la lógica existente
@@ -309,9 +330,6 @@ export default {
         alert('Partida finalizada. Se han asignado nuevas mesas para la siguiente partida.');
       } catch (error) {
         console.error('Error al finalizar la partida:', error);
-        if (error.response) {
-          console.error('Respuesta del servidor:', error.response.data);
-        }
         alert('Error al finalizar la partida. Por favor, intente de nuevo.');
       }
     };
