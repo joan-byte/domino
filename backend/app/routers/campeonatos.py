@@ -16,6 +16,10 @@ from app.models.mesa import Mesa
 from app.schemas.mesa import MesaAsignacion
 from app.models.ranking_final import RankingFinal
 from sqlalchemy import text
+from app.models.campeonato import Campeonato
+from app.models.resultado import Resultado
+from app.models.mesa import Mesa
+from app.models.jugador import Pareja
 
 router = APIRouter()
 
@@ -63,12 +67,46 @@ def update_campeonato(
 
 @router.delete("/{campeonato_id}")
 def eliminar_campeonato(campeonato_id: int, db: Session = Depends(get_db)):
-    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
-    if campeonato is None:
-        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
-    db.delete(campeonato)
-    db.commit()
-    return {"message": "Campeonato eliminado con éxito"}
+    try:
+        # Primero verificamos si el campeonato existe
+        campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+        if campeonato is None:
+            raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+
+        # Eliminamos en orden para mantener la integridad referencial
+        
+        # 1. Eliminar ranking final si existe
+        db.query(RankingFinal).filter(RankingFinal.campeonato_id == campeonato_id).delete(synchronize_session=False)
+        
+        # 2. Eliminar resultados
+        db.query(Resultado).filter(Resultado.campeonato_id == campeonato_id).delete(synchronize_session=False)
+        
+        # 3. Eliminar mesas
+        db.query(Mesa).filter(Mesa.campeonato_id == campeonato_id).delete(synchronize_session=False)
+        
+        # 4. Eliminar jugadores asociados a las parejas del campeonato
+        parejas = db.query(Pareja).filter(Pareja.campeonato_id == campeonato_id).all()
+        for pareja in parejas:
+            db.query(Jugador).filter(Jugador.pareja_id == pareja.id).delete(synchronize_session=False)
+        
+        # 5. Eliminar parejas
+        db.query(Pareja).filter(Pareja.campeonato_id == campeonato_id).delete(synchronize_session=False)
+        
+        # 6. Finalmente eliminamos el campeonato
+        db.delete(campeonato)
+        
+        # Confirmar todos los cambios
+        db.commit()
+        
+        return {"message": "Campeonato y todos sus datos asociados eliminados con éxito"}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error al eliminar el campeonato: {str(e)}")  # Para debugging
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al eliminar el campeonato: {str(e)}"
+        )
 
 @router.get("/{campeonato_id}/parejas", response_model=List[ParejaSchema])
 def obtener_parejas_campeonato(campeonato_id: int, db: Session = Depends(get_db)):

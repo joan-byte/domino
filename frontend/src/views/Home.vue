@@ -52,16 +52,12 @@ export default {
     const campeonatoSeleccionadoId = ref(localStorage.getItem('campeonato_id') || null);
 
     const fetchCampeonatos = async () => {
-      isLoading.value = true;
-      error.value = null;
       try {
-        const response = await api.get('/api/campeonatos');
+        const response = await axios.get('http://localhost:8000/api/campeonatos');
         campeonatos.value = response.data;
       } catch (e) {
         console.error('Error al obtener los campeonatos', e);
         error.value = 'Error al cargar los campeonatos. Por favor, intente de nuevo.';
-      } finally {
-        isLoading.value = false;
       }
     };
 

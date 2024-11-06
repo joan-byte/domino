@@ -148,6 +148,50 @@ def ajustar_pg(datos: dict, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/verificar-ultima-partida/{pareja1_id}/{pareja2_id}")
+def verificar_ultima_partida(
+    pareja1_id: int,
+    pareja2_id: int,
+    campeonato_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Obtener los resultados más recientes de ambas parejas
+        pareja1 = db.query(Resultado).filter(
+            Resultado.campeonato_id == campeonato_id,
+            Resultado.id_pareja == pareja1_id
+        ).order_by(Resultado.P.desc()).first()
+        
+        pareja2 = db.query(Resultado).filter(
+            Resultado.campeonato_id == campeonato_id,
+            Resultado.id_pareja == pareja2_id
+        ).order_by(Resultado.P.desc()).first()
+        
+        if not pareja1 or not pareja2:
+            raise HTTPException(status_code=404, detail="No se encontraron resultados para alguna de las parejas")
+        
+        debe_jugar = True
+        razon = None
+        
+        # Verificar diferencia de PG
+        if pareja1.PG - pareja2.PG > 1:
+            debe_jugar = False
+            razon = "Diferencia de PG mayor a 1"
+        # Verificar diferencia de PP si PG difiere en 1
+        elif pareja1.PG - pareja2.PG == 1 and pareja1.PP - pareja2.PP > 300:
+            debe_jugar = False
+            razon = "Diferencia de PP mayor a 300 con PG=1"
+            
+        return {
+            "debe_jugar": debe_jugar,
+            "razon": razon,
+            "diferencia_pg": pareja1.PG - pareja2.PG,
+            "diferencia_pp": pareja1.PP - pareja2.PP
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 
