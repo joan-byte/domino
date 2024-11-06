@@ -104,6 +104,11 @@ export default {
     });
 
     const calcularResultados = () => {
+      // Si ambos RP son 0, no calcular nada (caso inicial)
+      if (pareja1.value.RP === 0 && pareja2.value.RP === 0) {
+        return;
+      }
+
       if (pareja2.value.id_pareja === null) {
         pareja1.value.RP = 150;
         pareja1.value.PG = 1;
@@ -116,7 +121,8 @@ export default {
           pareja1.value.PG = 0;
           pareja2.value.PG = 1;
         } else {
-          pareja1.value.PG = 0;
+          pareja2.value.RP = pareja1.value.RP - 1;
+          pareja1.value.PG = 1;
           pareja2.value.PG = 0;
         }
 
@@ -127,9 +133,26 @@ export default {
 
     const guardarResultados = async () => {
       try {
+        // Validar que ambos RP no sean 0 al mismo tiempo
+        if (pareja1.value.RP === 0 && pareja2.value.RP === 0) {
+          alert("Debe ingresar los resultados parciales (RP) antes de guardar");
+          return;
+        }
+
+        // Validar que los RP sean diferentes
+        if (pareja2.value.id_pareja !== null && pareja1.value.RP === pareja2.value.RP) {
+          alert("No se pueden guardar los resultados: Los RP deben ser diferentes entre las parejas");
+          return;
+        }
+
         const campeonatoId = localStorage.getItem('campeonato_id');
         if (!campeonatoId) {
           throw new Error('ID del campeonato no encontrado');
+        }
+
+        // Validar que todos los campos necesarios estén presentes
+        if (!partidaActual.value || !mesaId.value || !pareja1.value.id_pareja) {
+          throw new Error('Faltan datos requeridos para guardar los resultados');
         }
 
         const payload = {
@@ -138,7 +161,7 @@ export default {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
             id_pareja: parseInt(pareja1.value.id_pareja),
-            GB: 'A',
+            GB: grupoB.value || 'A',
             PG: pareja1.value.PG,
             PP: pareja1.value.PP,
             RP: pareja1.value.RP
@@ -150,7 +173,7 @@ export default {
             P: parseInt(partidaActual.value),
             M: parseInt(mesaId.value),
             id_pareja: parseInt(pareja2.value.id_pareja),
-            GB: 'A',
+            GB: grupoB.value || 'A',
             PG: pareja2.value.PG,
             PP: pareja2.value.PP,
             RP: pareja2.value.RP
@@ -159,40 +182,69 @@ export default {
 
         console.log('Payload enviado:', payload);
         let response;
-        if (isModificando.value) {
-          response = await axios.post(`http://localhost:8000/api/resultados/update/${mesaId.value}/${partidaActual.value}`, payload);
-        } else {
-          response = await axios.post('http://localhost:8000/api/resultados/create', payload);
-        }
-        console.log('Respuesta del servidor:', response.data);
+        
+        try {
+          if (isModificando.value) {
+            response = await axios.post(
+              `http://localhost:8000/api/resultados/update/${mesaId.value}/${partidaActual.value}`, 
+              payload
+            );
+          } else {
+            response = await axios.post('http://localhost:8000/api/resultados/create', payload);
+          }
+          
+          console.log('Respuesta del servidor:', response.data);
 
-        if (response.data && (response.data.message || response.data.pareja1)) {
-          alert(response.data.message || 'Resultados guardados exitosamente');
-          await actualizarRanking();
-          router.push('/resultados/registro_partida');
-        } else {
-          console.error('Respuesta inesperada del servidor:', response.data);
-          throw new Error('Respuesta inesperada del servidor');
+          if (response.data && (response.data.message || response.data.pareja1)) {
+            alert(response.data.message || 'Resultados guardados exitosamente');
+            await actualizarRanking();
+            router.push('/resultados/registro_partida');
+          } else {
+            throw new Error('Respuesta inesperada del servidor');
+          }
+        } catch (axiosError) {
+          console.error('Error en la petición:', axiosError);
+          if (axiosError.response?.data?.detail) {
+            throw new Error(axiosError.response.data.detail);
+          } else {
+            throw new Error('Error al comunicarse con el servidor');
+          }
         }
       } catch (e) {
         console.error('Error al guardar los resultados:', e);
-        alert(`Error al guardar los resultados: ${e.message}. Por favor, intente de nuevo.`);
+        alert(`Error al guardar los resultados: ${e.message}`);
       }
     };
 
     const validarRP = (pareja) => {
       const valor = pareja.RP;
+      
       if (valor < 0) {
         alert("El resultado no puede ser negativo");
         pareja.RP = 0;
-      } else if (valor > 300) {
+        return false;
+      } 
+      
+      if (valor > 300) {
         alert("El resultado debe ser como máximo 300");
         pareja.RP = 300;
-      } else if (!Number.isInteger(valor)) {
+        return false;
+      } 
+      
+      if (!Number.isInteger(valor)) {
         alert("El resultado debe ser un número entero");
         pareja.RP = Math.round(valor);
+        return false;
       }
+      
+      if (pareja2.value.id_pareja !== null && pareja1.value.RP === pareja2.value.RP) {
+        alert("Los resultados parciales (RP) no pueden ser iguales entre las parejas");
+        pareja.RP = 0;
+        return false;
+      }
+
       calcularResultados();
+      return true;
     };
 
     const cancelarModificacion = () => {
@@ -230,14 +282,36 @@ export default {
           id2 && id2 !== 'null' ? axios.get(`http://localhost:8000/api/parejas/${id2}`) : Promise.resolve(null)
         ]);
 
-        pareja1.value = { ...pareja1Response.data, RP: 0, PG: 0, PP: 0, id_pareja: id1 };
-        
-        if (pareja2Response) {
-          pareja2.value = { ...pareja2Response.data, RP: 0, PG: 0, PP: 0, id_pareja: id2 };
-        } else {
-          pareja2.value = { nombre: 'Sin pareja', id_pareja: null, RP: 0, PG: 0, PP: 0 };
+        // Si es un nuevo registro, inicializar con RP en 0
+        if (!isModificando.value) {
+          pareja1.value = { 
+            ...pareja1Response.data, 
+            RP: 0, 
+            PG: 0, 
+            PP: 0, 
+            id_pareja: id1 
+          };
+          
+          if (pareja2Response) {
+            pareja2.value = { 
+              ...pareja2Response.data, 
+              RP: 0, 
+              PG: 0, 
+              PP: 0, 
+              id_pareja: id2 
+            };
+          } else {
+            pareja2.value = { 
+              nombre: 'Sin pareja', 
+              id_pareja: null, 
+              RP: 0, 
+              PG: 0, 
+              PP: 0 
+            };
+          }
         }
 
+        // Si estamos modificando, cargar los resultados existentes
         if (isModificando.value && tieneResultados) {
           console.log(`Obteniendo resultados para mesa ${mesaId.value} y partida ${partidaActual.value}`);
           try {
@@ -253,22 +327,22 @@ export default {
             console.log('Resultados obtenidos:', resultados);
             
             if (resultados.pareja1) {
-              pareja1.value = { ...pareja1.value, ...resultados.pareja1 };
+              pareja1.value = { 
+                ...pareja1Response.data,
+                ...resultados.pareja1,
+                id_pareja: id1 
+              };
             }
-            if (resultados.pareja2) {
-              pareja2.value = { ...pareja2.value, ...resultados.pareja2 };
-            } else {
-              pareja2.value = { nombre: 'Sin pareja', id_pareja: null, RP: 0, PG: 0, PP: 0 };
+            if (resultados.pareja2 && pareja2Response) {
+              pareja2.value = { 
+                ...pareja2Response.data,
+                ...resultados.pareja2,
+                id_pareja: id2 
+              };
             }
           } catch (error) {
             console.error('Error al obtener resultados:', error);
-            if (error.response && error.response.status === 404) {
-              console.log('No se encontraron resultados para esta mesa y partida');
-              alert('No se encontraron resultados para modificar. Se iniciará un nuevo registro.');
-              isModificando.value = false;
-            } else {
-              throw error;
-            }
+            throw error;
           }
         }
 
