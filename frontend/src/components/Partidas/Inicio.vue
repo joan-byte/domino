@@ -136,7 +136,12 @@ export default {
       if (sorteoRealizado.value) {
         // Volver atrás
         try {
-          await axios.delete('http://localhost:8000/api/partidas/sorteo-inicial');
+          const campeonatoId = localStorage.getItem('campeonato_id');
+          if (!campeonatoId) {
+            alert('No hay un campeonato seleccionado');
+            return;
+          }
+          await axios.delete(`http://localhost:8000/api/partidas/${campeonatoId}/sorteo-inicial`);
           sorteoRealizado.value = false;
           mesas.value = [];
           inscripcionAbierta.value = true;
@@ -151,7 +156,12 @@ export default {
       } else {
         // Realizar sorteo
         try {
-          const response = await axios.post('http://localhost:8000/api/partidas/sorteo-inicial');
+          const campeonatoId = localStorage.getItem('campeonato_id');
+          if (!campeonatoId) {
+            alert('No hay un campeonato seleccionado');
+            return;
+          }
+          const response = await axios.post(`http://localhost:8000/api/partidas/${campeonatoId}/sorteo-inicial`);
           mesas.value = response.data;
           sorteoRealizado.value = true;
           inscripcionAbierta.value = false;
