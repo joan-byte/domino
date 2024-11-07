@@ -189,18 +189,20 @@ def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
     if not campeonato:
         raise HTTPException(status_code=404, detail="Campeonato no encontrado")
 
+    # Obtener los resultados con sumas de PG y PP
     subquery = (
         db.query(
             Resultado.id_pareja,
             func.max(Resultado.P).label("ultima_partida"),
-            func.coalesce(func.sum(Resultado.PG), 0).label("PG_total"),
-            func.coalesce(func.sum(Resultado.PP), 0).label("PP_total")
+            func.sum(Resultado.PG).label("PG_total"),  # Sumatorio de PG
+            func.sum(Resultado.PP).label("PP_total")   # Sumatorio de PP
         )
         .filter(Resultado.campeonato_id == campeonato_id)
         .group_by(Resultado.id_pareja)
         .subquery()
     )
 
+    # Obtener las parejas con sus totales
     ranking = (
         db.query(
             subquery.c.ultima_partida,
@@ -245,9 +247,13 @@ def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
 
     # Ordenar el resultado final según los criterios especificados:
     # 1. GB ascendente (A antes que B)
-    # 2. PG descendente
-    # 3. PP descendente
-    resultado_final.sort(key=lambda x: (x["GB"], -x["PG"], -x["PP"]))
+    # 2. PG descendente (sumatorio)
+    # 3. PP descendente (sumatorio)
+    resultado_final.sort(key=lambda x: (
+        x["GB"],                # GB ascendente (A antes que B)
+        -(x["PG"] or 0),       # PG descendente (el - invierte el orden)
+        -(x["PP"] or 0)        # PP descendente (el - invierte el orden)
+    ))
 
     # Actualizar las posiciones después de ordenar
     for i, resultado in enumerate(resultado_final):
