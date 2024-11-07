@@ -170,20 +170,34 @@ export default {
     };
 
     const handleDelete = async () => {
-      if (confirm('¿Estás seguro de que quieres eliminar este campeonato?')) {
+      if (confirm('¿Está seguro de que desea eliminar este campeonato?')) {
         try {
-          await api.delete(`/api/campeonatos/${route.params.id}`);
-          alert('Campeonato eliminado con éxito');
+          // Obtenemos el ID del campeonato de route.params
+          const id = route.params.id;
+          if (!id) {
+            throw new Error('No se encontró el ID del campeonato');
+          }
+
+          await api.delete(`/api/campeonatos/${id}`);
+          
+          // Si el campeonato eliminado es el seleccionado actualmente
+          const campeonatoSeleccionadoId = localStorage.getItem('campeonato_id');
+          if (campeonatoSeleccionadoId === id.toString()) {
+            // Limpiamos todo el localStorage
+            localStorage.clear();
+          }
+          
+          // Verificamos si quedan campeonatos
+          const response = await api.get('/api/campeonatos');
+          if (response.data.length === 0) {
+            // Si no quedan campeonatos, aseguramos que todo esté limpio
+            localStorage.clear();
+          }
+          
           router.push('/');
         } catch (error) {
-          console.error('Error al eliminar el campeonato', error);
-          if (error.response) {
-            alert(`Error del servidor: ${error.response.status} - ${error.response.data.detail || 'Error desconocido'}`);
-          } else if (error.request) {
-            alert('No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.');
-          } else {
-            alert(`Error al procesar la solicitud: ${error.message}`);
-          }
+          console.error('Error al eliminar el campeonato:', error);
+          alert('Error al eliminar el campeonato');
         }
       }
     };

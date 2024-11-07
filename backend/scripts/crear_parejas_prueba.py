@@ -1,92 +1,109 @@
-import os
 import sys
+import os
+import random
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Añade el directorio raíz del proyecto al PYTHONPATH
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
-
-from faker import Faker
 from sqlalchemy.orm import Session
+from app.db.session import SessionLocal
 from app.models.jugador import Pareja, Jugador
 from app.models.campeonato import Campeonato
-from app.db.session import SessionLocal
 
-fake = Faker('es_ES')  # Utilizamos nombres en español
-
-# Lista de clubes para asignar aleatoriamente
-CLUBES = [
-    'Club Dominó Madrid',
-    'Club Dominó Barcelona',
-    'Club Dominó Valencia',
-    'Club Dominó Sevilla',
-    'Club Dominó Bilbao',
-    'Club Dominó Málaga',
-    'Club Dominó Zaragoza',
-    'Club Dominó Murcia',
-    'Club Dominó Valladolid',
-    'Club Dominó Alicante'
+# Listas de nombres y apellidos reales españoles
+nombres = [
+    "Antonio", "Manuel", "José", "Francisco", "David", "Juan", "Miguel", "Javier",
+    "Daniel", "Carlos", "Jesús", "Alejandro", "Rafael", "Pedro", "Pablo", "Ángel",
+    "Sergio", "Fernando", "Jorge", "Luis", "Alberto", "Álvaro", "Diego", "Adrián",
+    "María", "Carmen", "Ana", "Isabel", "Laura", "Elena", "Cristina", "Marta",
+    "Rosa", "Sara", "Paula", "Lucía", "Raquel", "Andrea", "Patricia", "Beatriz"
 ]
 
-def crear_parejas_prueba(db: Session, campeonato_id: int = 3, num_parejas: int = 62):
-    # Obtener el campeonato existente
-    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
-    if not campeonato:
-        print(f"No se encontró un campeonato con id {campeonato_id}")
-        return
+apellidos = [
+    "García", "Rodríguez", "González", "Fernández", "López", "Martínez", "Sánchez",
+    "Pérez", "Gómez", "Martín", "Jiménez", "Ruiz", "Hernández", "Díaz", "Moreno",
+    "Álvarez", "Muñoz", "Romero", "Alonso", "Gutiérrez", "Navarro", "Torres",
+    "Domínguez", "Vázquez", "Ramos", "Gil", "Ramírez", "Serrano", "Blanco", "Suárez",
+    "Molina", "Morales", "Ortega", "Delgado", "Castro", "Ortiz", "Rubio", "Marín"
+]
 
-    parejas = []
-    for i in range(num_parejas):
-        # Generar nombres y apellidos para dos jugadores
-        nombre1, apellido1 = fake.first_name(), fake.last_name()
-        nombre2, apellido2 = fake.first_name(), fake.last_name()
-
-        # Formar el nombre de la pareja
-        nombre_pareja = f"{nombre1} {apellido1} y {nombre2} {apellido2}"
-
-        # Seleccionar un club aleatorio
-        club = fake.random_element(CLUBES)
-
-        # Crear la pareja
-        pareja = Pareja(
-            nombre=nombre_pareja,
-            campeonato_id=campeonato.id,
-            club=club,
-            activa=True
-        )
-        db.add(pareja)
-        db.flush()  # Para obtener el ID de la pareja
-
-        # Crear los jugadores asociados a la pareja
-        jugador1 = Jugador(
-            nombre=nombre1, 
-            apellido=apellido1, 
-            pareja_id=pareja.id, 
-            campeonato_id=campeonato.id
-        )
-        jugador2 = Jugador(
-            nombre=nombre2, 
-            apellido=apellido2, 
-            pareja_id=pareja.id, 
-            campeonato_id=campeonato.id
-        )
-        
-        db.add(jugador1)
-        db.add(jugador2)
-
-        parejas.append(pareja)
-    
+def crear_parejas_prueba():
+    db = SessionLocal()
     try:
+        # Solicitar ID del campeonato
+        while True:
+            campeonato_id = input("Ingrese el ID del campeonato: ")
+            try:
+                campeonato_id = int(campeonato_id)
+                # Verificar si el campeonato existe
+                campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+                if campeonato:
+                    break
+                else:
+                    print(f"No existe un campeonato con ID {campeonato_id}")
+            except ValueError:
+                print("Por favor, ingrese un número válido")
+
+        # Solicitar número de parejas
+        while True:
+            num_parejas = input("¿Cuántas parejas desea crear? ")
+            try:
+                num_parejas = int(num_parejas)
+                if num_parejas > 0:
+                    break
+                else:
+                    print("Por favor, ingrese un número mayor que 0")
+            except ValueError:
+                print("Por favor, ingrese un número válido")
+
+        # Crear parejas
+        for i in range(num_parejas):
+            # Generar datos aleatorios para los jugadores
+            jugador1_nombre = random.choice(nombres)
+            jugador1_apellido = random.choice(apellidos)
+            jugador2_nombre = random.choice(nombres)
+            jugador2_apellido = random.choice(apellidos)
+            
+            # Crear el nombre de la pareja según el formato especificado
+            nombre_pareja = f"{jugador1_nombre} {jugador1_apellido} y {jugador2_nombre} {jugador2_apellido}"
+            club = f"Club {i+1}"
+            
+            nueva_pareja = Pareja(
+                nombre=nombre_pareja,
+                club=club,
+                campeonato_id=campeonato_id,
+                activa=True
+            )
+            db.add(nueva_pareja)
+            db.flush()  # Para obtener el ID de la pareja
+
+            # Crear jugadores de la pareja con los nombres generados
+            jugador1 = Jugador(
+                nombre=jugador1_nombre,
+                apellido=jugador1_apellido,
+                pareja_id=nueva_pareja.id,
+                campeonato_id=campeonato_id
+            )
+
+            jugador2 = Jugador(
+                nombre=jugador2_nombre,
+                apellido=jugador2_apellido,
+                pareja_id=nueva_pareja.id,
+                campeonato_id=campeonato_id
+            )
+
+            db.add(jugador1)
+            db.add(jugador2)
+
+            print(f"Creada pareja {i+1}/{num_parejas}: {nombre_pareja}")
+
         db.commit()
-        print(f"Se han creado exitosamente {num_parejas} parejas para el campeonato '{campeonato.nombre}' (ID: {campeonato.id})")
-        print(f"Cada pareja ha sido asignada a uno de los {len(CLUBES)} clubes disponibles")
+        print(f"\nSe han creado {num_parejas} parejas exitosamente en el campeonato {campeonato_id}")
+
     except Exception as e:
         db.rollback()
         print(f"Error al crear las parejas: {str(e)}")
-        return
-
-if __name__ == "__main__":
-    db = SessionLocal()
-    try:
-        crear_parejas_prueba(db)
     finally:
         db.close()
+
+if __name__ == "__main__":
+    print("=== Creación de Parejas de Prueba ===")
+    crear_parejas_prueba()

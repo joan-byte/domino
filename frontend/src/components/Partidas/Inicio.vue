@@ -136,14 +136,13 @@ export default {
       if (sorteoRealizado.value) {
         // Volver atrás
         try {
-          await axios.delete('http://localhost:8000/api/sorteo-inicial');
+          await axios.delete('http://localhost:8000/api/partidas/sorteo-inicial');
           sorteoRealizado.value = false;
           mesas.value = [];
           inscripcionAbierta.value = true;
           localStorage.setItem('sorteoRealizado', 'false');
           localStorage.setItem('inscripcionAbierta', 'true');
-          localStorage.removeItem('partida_actual'); // Eliminar la partida actual
-          // Añadir esta línea para actualizar las parejas después de eliminar las mesas
+          localStorage.removeItem('partida_actual');
           await fetchParejas();
         } catch (error) {
           console.error('Error al eliminar el sorteo:', error);
@@ -152,16 +151,14 @@ export default {
       } else {
         // Realizar sorteo
         try {
-          const response = await axios.post('http://localhost:8000/api/sorteo-inicial');
+          const response = await axios.post('http://localhost:8000/api/partidas/sorteo-inicial');
           mesas.value = response.data;
           sorteoRealizado.value = true;
           inscripcionAbierta.value = false;
           localStorage.setItem('sorteoRealizado', 'true');
           localStorage.setItem('inscripcionAbierta', 'false');
-          localStorage.setItem('partida_actual', '1'); // Establecer la partida actual a 1
-          // Esperar a que Vue actualice el DOM
+          localStorage.setItem('partida_actual', '1');
           await nextTick();
-          // Navegar a la página de mesas
           router.push('/Partidas/Mesas');
         } catch (error) {
           console.error('Error al realizar el sorteo:', error);

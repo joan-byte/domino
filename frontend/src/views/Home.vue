@@ -13,10 +13,12 @@
         <p class="text-sm text-gray-600">Número de partidas: {{ campeonato.numero_partidas }}</p>
         <p class="text-sm text-gray-600">Grupo: {{ campeonato.grupo_b ? 'B' : 'A' }}</p>
         <div class="mt-4 flex justify-between">
-          <button @click="modificarCampeonato(campeonato)" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+          <button @click="modificarCampeonato(campeonato)" 
+                  class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-3 rounded text-sm">
             Modificar
           </button>
-          <button @click="seleccionarOSalirCampeonato(campeonato)" :class="buttonClass(campeonato)">
+          <button @click="seleccionarOSalirCampeonato(campeonato)" 
+                  :class="[buttonClass(campeonato), 'text-sm py-1 px-3']">
             {{ buttonText(campeonato) }}
           </button>
         </div>
@@ -115,8 +117,8 @@ export default {
 
     const buttonClass = (campeonato) => {
       return campeonatoSeleccionadoId.value === campeonato.id.toString()
-        ? 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
-        : 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded';
+        ? 'bg-red-500 hover:bg-red-700 text-white font-bold rounded ml-2'
+        : 'bg-blue-500 hover:bg-blue-700 text-white font-bold rounded ml-2';
     };
 
     onMounted(() => {

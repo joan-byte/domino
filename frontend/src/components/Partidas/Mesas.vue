@@ -49,7 +49,6 @@ export default {
     const isLoading = ref(true);
     const error = ref(null);
     const partidaActual = ref(localStorage.getItem('partida_actual') || '1');
-    const campeonatoId = ref(localStorage.getItem('campeonato_id'));
     const startIndex = ref(0);
     const intervalId = ref(null);
     const itemsPerPage = ref(20);
@@ -67,12 +66,21 @@ export default {
     const fetchParejasMesas = async () => {
       try {
         isLoading.value = true;
-        const response = await axios.get(`http://localhost:8000/api/mesas-asignadas/${campeonatoId.value}`);
+        const campeonatoId = localStorage.getItem('campeonato_id');
+        if (!campeonatoId) {
+          throw new Error('No hay campeonato seleccionado');
+        }
+
+        // Obtener las mesas y parejas asignadas
+        const response = await axios.get(`http://localhost:8000/api/partidas/mesas-asignadas/${campeonatoId}`);
+        
+        // La respuesta ya viene con el formato correcto del backend
         parejas.value = response.data;
-        console.log('Parejas y mesas actualizadas:', parejas.value);
+        
+        console.log('Mesas y parejas actualizadas:', parejas.value);
       } catch (e) {
-        console.error('Error al obtener las parejas y mesas', e);
-        error.value = 'Error al cargar las parejas y mesas. Por favor, intente de nuevo.';
+        console.error('Error al obtener las mesas y parejas', e);
+        error.value = 'Error al cargar las mesas y parejas. Por favor, intente de nuevo.';
       } finally {
         isLoading.value = false;
       }
