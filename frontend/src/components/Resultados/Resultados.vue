@@ -106,14 +106,33 @@ export default {
     const calcularResultados = () => {
       // Si ambos RP son 0, no calcular nada (caso inicial)
       if (pareja1.value.RP === 0 && pareja2.value.RP === 0) {
+        // Caso especial: última mesa con una sola pareja
+        if (pareja2.value.id_pareja === null) {
+          pareja1.value.RP = 150;
+          pareja1.value.PG = 1;
+          pareja1.value.PP = 150;
+          
+          // Establecer valores para pareja2 (aunque no exista)
+          pareja2.value.RP = 0;
+          pareja2.value.PG = 0;
+          pareja2.value.PP = -150;
+          return;
+        }
         return;
       }
 
       if (pareja2.value.id_pareja === null) {
+        // Caso de mesa con una sola pareja
         pareja1.value.RP = 150;
         pareja1.value.PG = 1;
         pareja1.value.PP = 150;
+        
+        // Establecer valores para pareja2 (aunque no exista)
+        pareja2.value.RP = 0;
+        pareja2.value.PG = 0;
+        pareja2.value.PP = -150;
       } else {
+        // Lógica normal para dos parejas
         if (pareja1.value.RP > pareja2.value.RP) {
           pareja1.value.PG = 1;
           pareja2.value.PG = 0;
@@ -349,9 +368,15 @@ export default {
         calcularResultados();
 
         // Obtener información de la mesa
-        const mesaResponse = await axios.get(`http://localhost:8000/api/mesas/${mesaId.value}`);
-        mesaNumero.value = mesaResponse.data.numero;
-        grupoB.value = mesaResponse.data.grupo;
+        const mesaResponse = await axios.get(
+          `http://localhost:8000/api/campeonatos/${localStorage.getItem('campeonato_id')}/mesas-partida-actual`
+        );
+        const mesa = mesaResponse.data.find(m => m.id === parseInt(mesaId.value));
+        if (!mesa) {
+          throw new Error('Mesa no encontrada');
+        }
+        mesaNumero.value = mesa.numero;
+        grupoB.value = mesa.grupo || localStorage.getItem('campeonato_grupo');
 
         // Actualizar el payload con el grupo correcto
         const payload = {

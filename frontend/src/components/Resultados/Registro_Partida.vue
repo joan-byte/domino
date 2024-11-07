@@ -177,7 +177,7 @@ export default {
       try {
         console.log(`Verificando resultados para mesa ${mesa.id} y partida ${partidaActual.value}`);
         const response = await axios.get(
-          `http://localhost:8000/api/resultados/mesa-tiene-resultados/${mesa.id}/${partidaActual.value}`, 
+          `http://localhost:8000/api/resultados/mesa/${mesa.id}/partida/${partidaActual.value}/tiene-resultados`, 
           {
             params: {
               campeonato_id: campeonatoId.value
