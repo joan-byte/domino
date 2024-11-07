@@ -184,14 +184,15 @@ def get_ultima_partida(campeonato_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{campeonato_id}/ranking")
 def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
+    # Obtener el campeonato para verificar el grupo y la partida actual
+    campeonato = db.query(Campeonato).filter(Campeonato.id == campeonato_id).first()
+    if not campeonato:
+        raise HTTPException(status_code=404, detail="Campeonato no encontrado")
+
     subquery = (
         db.query(
             Resultado.id_pareja,
             func.max(Resultado.P).label("ultima_partida"),
-            case(
-                (func.max(case((Resultado.GB == "B", 1), else_=0)) > 0, "B"),
-                else_="A"
-            ).label("GB"),
             func.coalesce(func.sum(Resultado.PG), 0).label("PG_total"),
             func.coalesce(func.sum(Resultado.PP), 0).label("PP_total")
         )
@@ -203,7 +204,6 @@ def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
     ranking = (
         db.query(
             subquery.c.ultima_partida,
-            subquery.c.GB,
             subquery.c.PG_total,
             subquery.c.PP_total,
             Pareja.id.label("pareja_id"),
@@ -212,38 +212,46 @@ def get_ranking(campeonato_id: int, db: Session = Depends(get_db)):
         )
         .outerjoin(subquery, Pareja.id == subquery.c.id_pareja)
         .filter(Pareja.campeonato_id == campeonato_id, Pareja.activa == True)
-        .order_by(
-            subquery.c.GB.asc(),
-            subquery.c.PG_total.desc(),
-            subquery.c.PP_total.desc()
-        )
         .all()
     )
 
-    # Procesar el ranking para asignar posiciones independientes por grupo
+    # Procesar el ranking
     resultado_final = []
-    posicion_grupo_a = 1
-    posicion_grupo_b = 1
+    total_parejas = len(ranking)
+    mitad_parejas = total_parejas // 2
+    partidas_totales = campeonato.numero_partidas
+    mitad_partidas = partidas_totales // 2
 
-    for r in ranking:
-        es_grupo_b = r.GB == "B"
-        posicion = posicion_grupo_b if es_grupo_b else posicion_grupo_a
+    for i, r in enumerate(ranking):
+        # Por defecto, todas las parejas son del grupo A
+        grupo = "A"
+        
+        # Solo si es un campeonato del grupo B y hemos pasado la mitad de las partidas
+        if campeonato.grupo_b and campeonato.partida_actual > mitad_partidas:
+            # Las parejas en la mitad inferior pasan al grupo B
+            if i >= mitad_parejas:
+                grupo = "B"
 
         resultado_final.append({
             "partida": r.ultima_partida or 0,
-            "GB": r.GB or "A",
+            "GB": grupo,
             "PG": r.PG_total or 0,
             "PP": r.PP_total or 0,
             "pareja_id": r.pareja_id,
             "nombre_pareja": r.nombre_pareja,
             "club": r.club,
-            "posicion": posicion
+            "posicion": i + 1
         })
 
-        if es_grupo_b:
-            posicion_grupo_b += 1
-        else:
-            posicion_grupo_a += 1
+    # Ordenar el resultado final según los criterios especificados:
+    # 1. GB ascendente (A antes que B)
+    # 2. PG descendente
+    # 3. PP descendente
+    resultado_final.sort(key=lambda x: (x["GB"], -x["PG"], -x["PP"]))
+
+    # Actualizar las posiciones después de ordenar
+    for i, resultado in enumerate(resultado_final):
+        resultado["posicion"] = i + 1
 
     return resultado_final
 
@@ -269,22 +277,54 @@ def asignar_mesas(campeonato_id: int, asignaciones: List[MesaAsignacion], db: Se
     if not campeonato:
         raise HTTPException(status_code=404, detail="Campeonato no encontrado")
 
-    # Eliminar todas las mesas de la partida actual
-    db.query(Mesa).filter(Mesa.campeonato_id == campeonato_id, Mesa.partida == campeonato.partida_actual).delete()
+    # Obtener el ranking actual (ya viene ordenado por posición)
+    ranking = get_ranking(campeonato_id, db)
 
-    # Crear nuevas asignaciones
-    for asignacion in asignaciones:
+    # Eliminar todas las mesas de la partida actual
+    db.query(Mesa).filter(
+        Mesa.campeonato_id == campeonato_id, 
+        Mesa.partida == campeonato.partida_actual
+    ).delete()
+
+    nuevas_mesas = []
+    numero_mesa = 1
+
+    # Asignar mesas según la posición en el ranking
+    # Las parejas 1 y 2 van a la mesa 1, las parejas 3 y 4 a la mesa 2, etc.
+    for i in range(0, len(ranking), 2):
+        pareja1_id = ranking[i]["pareja_id"]
+        pareja2_id = ranking[i + 1]["pareja_id"] if i + 1 < len(ranking) else None
+        
         nueva_mesa = Mesa(
             campeonato_id=campeonato_id,
             partida=campeonato.partida_actual,
-            numero=asignacion.mesa,
-            pareja1_id=asignacion.pareja1_id,
-            pareja2_id=asignacion.pareja2_id
+            numero=numero_mesa,
+            pareja1_id=pareja1_id,
+            pareja2_id=pareja2_id
         )
         db.add(nueva_mesa)
+        nuevas_mesas.append(nueva_mesa)
+        numero_mesa += 1
 
-    db.commit()
-    return {"message": "Mesas asignadas correctamente para la partida actual"}
+    try:
+        db.commit()
+        return {
+            "message": "Mesas asignadas correctamente para la partida actual",
+            "mesas": [
+                {
+                    "numero": mesa.numero,
+                    "pareja1_id": mesa.pareja1_id,
+                    "pareja2_id": mesa.pareja2_id
+                }
+                for mesa in nuevas_mesas
+            ]
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al asignar las mesas: {str(e)}"
+        )
 
 @router.get("/{campeonato_id}/parejas-mesas")
 def obtener_parejas_mesas(campeonato_id: int, db: Session = Depends(get_db)):

@@ -228,93 +228,27 @@ export default {
       });
     };
 
+    // Definir actualizarRanking fuera de finalizarPartida
+    const actualizarRanking = async () => {
+      try {
+        await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/actualizar-ranking`);
+      } catch (e) {
+        console.error('Error al actualizar el ranking', e);
+        throw new Error('Error al actualizar el ranking');
+      }
+    };
+
     const finalizarPartida = async () => {
       try {
         const partidaActualNum = parseInt(partidaActual.value);
-        const totalPartidas = parseInt(localStorage.getItem('campeonato_partidas'));
         
-        if (partidaActualNum + 1 === totalPartidas) {
-          // Obtener el ranking actual separado por grupos
-          const rankingResponse = await axios.get(
-            `http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`
-          );
-          let ranking = rankingResponse.data;
-
-          // Ordenar el ranking por PG (descendente) y PP (ascendente)
-          ranking.sort((a, b) => {
-            if (b.PG !== a.PG) return b.PG - a.PG;
-            return a.PP - b.PP;
-          });
-
-          // Separar parejas por grupos (ya ordenadas)
-          const grupoA = ranking.filter(p => p.GB === 'A');
-          const grupoB = ranking.filter(p => p.GB === 'B');
-
-          // Función para verificar si una pareja debe jugar la última partida
-          const debeJugarUltimaPartida = (primera, segunda) => {
-            // Si la diferencia en PG es mayor a 1, la primera pareja no juega
-            if (primera.PG - segunda.PG > 1) {
-              return false;
-            }
-            
-            // Solo verificar PP si la diferencia en PG es exactamente 1
-            if (primera.PG - segunda.PG === 1) {
-              // Si la primera pareja tiene más de 300 PP que la segunda, no debe jugar
-              if (primera.PP - segunda.PP > 300) {
-                return false;
-              }
-            }
-            
-            return true;
-          };
-
-          // Verificar y ajustar PG para las parejas que no deben jugar
-          const ajustarParejas = async (grupo) => {
-            if (grupo.length >= 2) {
-              const [primera, segunda] = grupo;
-              if (!debeJugarUltimaPartida(primera, segunda)) {
-                console.log(`Pareja ${primera.pareja_id} no jugará la última partida.`);
-                console.log(`PG actual: ${primera.PG}, PP: ${primera.PP}`);
-                console.log(`Segunda pareja PG: ${segunda.PG}, PP: ${segunda.PP}`);
-                console.log(`Diferencia PP: ${primera.PP - segunda.PP}`);
-                
-                // Sumar un punto adicional a la primera pareja
-                await axios.post(`http://localhost:8000/api/resultados/ajustar-pg`, {
-                  pareja_id: primera.pareja_id,
-                  campeonato_id: campeonatoId.value,
-                  nuevo_pg: primera.PG + 1
-                });
-                
-                // Actualizar el PG en el objeto local
-                primera.PG += 1;
-                primera.excluir_ultima_partida = true;
-              }
-            }
-          };
-
-          // Ajustar parejas para ambos grupos
-          await ajustarParejas(grupoA);
-          await ajustarParejas(grupoB);
-
-          // Filtrar las parejas que deben jugar la última partida y ordenarlas por posición
-          const parejasParaUltimaPartida = ranking
-            .filter(p => !p.excluir_ultima_partida)
-            .sort((a, b) => {
-              if (b.PG !== a.PG) return b.PG - a.PG;
-              return a.PP - b.PP;
-            });
-
-          // Calcular las nuevas asignaciones solo con las parejas que deben jugar
-          const nuevasAsignaciones = calcularNuevasAsignaciones(parejasParaUltimaPartida);
-
-          console.log('Nuevas asignaciones para última partida:', nuevasAsignaciones);
-
-          // Continuar con la lógica existente usando las nuevas asignaciones
-          await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/asignar-mesas`, nuevasAsignaciones);
-        }
-
-        // Continuar con la lógica existente
-        const rankingResponse = await axios.get(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`);
+        // 1. Actualizar el ranking
+        await actualizarRanking();
+        
+        // 2. Obtener el ranking actualizado
+        const rankingResponse = await axios.get(
+          `http://localhost:8000/api/campeonatos/${campeonatoId.value}/ranking`
+        );
         const ranking = rankingResponse.data;
 
         if (esUltimaPartida.value) {
@@ -325,24 +259,27 @@ export default {
           return;
         }
 
-        // 2. Calcular las nuevas asignaciones de mesas
+        // 3. Calcular las nuevas asignaciones de mesas basadas en el ranking actualizado
         const nuevasAsignaciones = calcularNuevasAsignaciones(ranking);
 
-        // 3. Actualizar la partida actual en el backend
-        const nuevaPartida = parseInt(partidaActual.value) + 1;
+        // 4. Actualizar la partida actual en el backend
+        const nuevaPartida = partidaActualNum + 1;
         await axios.put(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/partida_actual`, {
           partida_actual: nuevaPartida
         });
 
-        // 4. Actualizar las asignaciones de mesas en el backend
+        // 5. Asignar las nuevas mesas
         await axios.post(`http://localhost:8000/api/campeonatos/${campeonatoId.value}/asignar-mesas`, nuevasAsignaciones);
 
-        // 5. Actualizar el localStorage y el estado local
+        // 6. Actualizar el localStorage y el estado local
         localStorage.setItem('partida_actual', nuevaPartida.toString());
         partidaActual.value = nuevaPartida.toString();
 
-        // 6. Recargar los datos de las mesas
+        // 7. Recargar los datos de las mesas
         await fetchMesas();
+
+        // 8. Forzar la recarga de la página para actualizar todos los componentes
+        window.location.reload();
 
         alert('Partida finalizada. Se han asignado nuevas mesas para la siguiente partida.');
       } catch (error) {
@@ -392,6 +329,7 @@ export default {
       modificarResultado,
       irARegistroResultado,
       esUltimaPartida,
+      actualizarRanking
     };
   }
 }
